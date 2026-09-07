@@ -3,97 +3,40 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Home,
-  Compass,
-  Upload,
+  UtensilsCrossed,
+  Star,
   Radio,
   Zap,
-  FolderOpen,
-  BarChart3,
-  MessageCircle,
-  Settings,
-  LayoutDashboard,
-  CreditCard,
-  DollarSign,
-  Shield,
+  ImageIcon,
   type LucideIcon,
 } from "lucide-react";
-import type { NavItem, Role } from "@/lib/roles";
-import { getNavForRole } from "@/lib/roles";
+import type { NavItem } from "@/lib/roles";
+import { NAV_ITEMS } from "@/lib/roles";
 
 const iconMap: Record<string, LucideIcon> = {
-  home: Home,
-  compass: Compass,
-  upload: Upload,
+  "utensils-crossed": UtensilsCrossed,
+  star: Star,
   radio: Radio,
   zap: Zap,
-  folder: FolderOpen,
-  "bar-chart": BarChart3,
-  "message-circle": MessageCircle,
-  settings: Settings,
-  "layout-dashboard": LayoutDashboard,
-  "credit-card": CreditCard,
-  "dollar-sign": DollarSign,
-  shield: Shield,
+  image: ImageIcon,
 };
 
-interface SidebarProps {
-  role: Role;
-}
-
-export function Sidebar({ role }: SidebarProps) {
+export function Sidebar() {
   const pathname = usePathname();
-  const navItems = getNavForRole(role);
-  const mainItems = navItems.filter((item) => item.section === "main");
-  const creatorItems = navItems.filter((item) => item.section === "creator");
 
   return (
     <aside className="fixed left-0 top-14 bottom-0 w-56 bg-sidebar border-r border-border flex flex-col z-30">
       <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-1">
-        {mainItems.map((item) => (
+        {NAV_ITEMS.map((item) => (
           <NavLink key={item.href} item={item} pathname={pathname} />
         ))}
-
-        {creatorItems.length > 0 && (
-          <>
-            <div className="pt-4 pb-2">
-              <p className="px-3 text-[10px] font-semibold uppercase tracking-wider text-muted">
-                Creator Tools
-              </p>
-            </div>
-            {creatorItems.map((item) => (
-              <NavLink key={item.href} item={item} pathname={pathname} />
-            ))}
-          </>
-        )}
       </nav>
-
-      <div className="p-3 border-t border-border">
-        <div className="text-[11px] text-muted space-y-1">
-          <div className="flex gap-2">
-            <span>Your videos</span>
-            <span>•</span>
-            <span>Drafts (2)</span>
-            <span>•</span>
-            <span>Scheduled (1)</span>
-          </div>
-          <div className="mt-2">
-            <div className="flex justify-between mb-1">
-              <span>Storage</span>
-              <span>34.5 GB / 100 GB</span>
-            </div>
-            <div className="h-1.5 bg-surface-elevated rounded-full overflow-hidden">
-              <div className="h-full w-[34.5%] gradient-brand rounded-full" />
-            </div>
-          </div>
-        </div>
-      </div>
     </aside>
   );
 }
 
 function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
-  const Icon = iconMap[item.icon] ?? Home;
+  const Icon = iconMap[item.icon] ?? ImageIcon;
   const isActive = pathname === item.href;
 
   return (

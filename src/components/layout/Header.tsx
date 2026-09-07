@@ -3,13 +3,15 @@
 import { useRouter } from "next/navigation";
 import {
   Search,
-  Home,
+  UtensilsCrossed,
+  Star,
   Radio,
   Zap,
   Upload,
   Bell,
   Settings,
   LogOut,
+  ImageIcon,
 } from "lucide-react";
 import { Logo } from "./Logo";
 import type { User } from "@/lib/roles";
@@ -47,9 +49,11 @@ export function Header({ user }: HeaderProps) {
       </div>
 
       <nav className="hidden md:flex items-center gap-1">
-        <HeaderLink href="/dashboard" icon={Home} label="Home" />
-        <HeaderLink href="/dashboard/live-studio" icon={Radio} label="Live" />
-        <HeaderLink href="/dashboard/shorts-studio" icon={Zap} label="Shorts" />
+        <HeaderLink href="/dashboard/appetizers" icon={UtensilsCrossed} label="Appetizers" />
+        <HeaderLink href="/dashboard/celebrity-leaks" icon={Star} label="Celebrity Leaks" />
+        <HeaderLink href="/dashboard/live-sex" icon={Radio} label="Live Sex" />
+        <HeaderLink href="/dashboard/quickies" icon={Zap} label="Quickies" />
+        <HeaderLink href="/dashboard/picha" icon={ImageIcon} label="Picha" />
       </nav>
 
       <div className="flex items-center gap-2">

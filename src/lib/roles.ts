@@ -23,19 +23,11 @@ export const ROLE_LABELS: Record<Role, string> = {
 };
 
 export const NAV_ITEMS: NavItem[] = [
-  { label: "Home", href: "/dashboard", icon: "home", roles: ["viewer", "creator", "admin"], section: "main" },
-  { label: "Explore", href: "/dashboard/explore", icon: "compass", roles: ["viewer", "creator", "admin"], section: "main" },
-  { label: "Upload Video", href: "/dashboard/upload", icon: "upload", roles: ["creator", "admin"], section: "main" },
-  { label: "Live Studio", href: "/dashboard/live-studio", icon: "radio", roles: ["creator", "admin"], section: "main" },
-  { label: "Shorts Studio", href: "/dashboard/shorts-studio", icon: "zap", roles: ["creator", "admin"], section: "main" },
-  { label: "My Content", href: "/dashboard/my-content", icon: "folder", roles: ["creator", "admin"], section: "main" },
-  { label: "Analytics", href: "/dashboard/analytics", icon: "bar-chart", roles: ["creator", "admin"], section: "main" },
-  { label: "Comments", href: "/dashboard/comments", icon: "message-circle", roles: ["creator", "admin"], section: "main" },
-  { label: "Settings", href: "/dashboard/settings", icon: "settings", roles: ["viewer", "creator", "admin"], section: "main" },
-  { label: "Creator Dashboard", href: "/dashboard/creator-dashboard", icon: "layout-dashboard", roles: ["creator", "admin"], section: "creator" },
-  { label: "Subscription", href: "/dashboard/subscription", icon: "credit-card", roles: ["creator", "admin"], section: "creator" },
-  { label: "Monetization", href: "/dashboard/monetization", icon: "dollar-sign", roles: ["creator", "admin"], section: "creator" },
-  { label: "Admin Panel", href: "/dashboard/admin", icon: "shield", roles: ["admin"], section: "creator" },
+  { label: "Appetizers", href: "/dashboard/appetizers", icon: "utensils-crossed", roles: ["viewer", "creator", "admin"], section: "main" },
+  { label: "Celebrity Leaks", href: "/dashboard/celebrity-leaks", icon: "star", roles: ["viewer", "creator", "admin"], section: "main" },
+  { label: "Live Sex", href: "/dashboard/live-sex", icon: "radio", roles: ["viewer", "creator", "admin"], section: "main" },
+  { label: "Quickies", href: "/dashboard/quickies", icon: "zap", roles: ["viewer", "creator", "admin"], section: "main" },
+  { label: "Picha", href: "/dashboard/picha", icon: "image", roles: ["viewer", "creator", "admin"], section: "main" },
 ];
 
 export function hasRole(userRole: Role, required: Role[]): boolean {
