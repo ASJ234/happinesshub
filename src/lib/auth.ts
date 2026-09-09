@@ -1,51 +1,44 @@
-import { cookies } from "next/headers";
-import type { Role, User } from "./roles";
-import { DEMO_USERS } from "./roles";
+import type { User } from "./roles";
+import { createClient } from "./supabase/server";
 
-export const SESSION_COOKIE = "happinesshub_session";
+const USERNAME_EMAIL_DOMAIN = "happinesshub.local";
 
-export interface Session {
-  user: User;
-  expiresAt: number;
+export function usernameToEmail(username: string): string {
+  return `${username}@${USERNAME_EMAIL_DOMAIN}`;
 }
 
-function encodeSession(session: Session): string {
-  return Buffer.from(JSON.stringify(session)).toString("base64url");
+export function normalizeUsername(username: string): string {
+  return username.trim().toLowerCase();
 }
 
-function decodeSession(value: string): Session | null {
-  try {
-    const session = JSON.parse(
-      Buffer.from(value, "base64url").toString("utf-8")
-    ) as Session;
-    if (session.expiresAt < Date.now()) return null;
-    return session;
-  } catch {
-    return null;
-  }
-}
-
-export async function getSession(): Promise<Session | null> {
-  const cookieStore = await cookies();
-  const token = cookieStore.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
-  return decodeSession(token);
+export function isValidUsername(username: string): boolean {
+  return /^[a-z0-9_.]{3,20}$/.test(normalizeUsername(username));
 }
 
 export async function getCurrentUser(): Promise<User | null> {
-  const session = await getSession();
-  return session?.user ?? null;
-}
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-export function createSessionToken(role: Role): string {
-  const user = DEMO_USERS[role];
-  const session: Session = {
-    user,
-    expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000,
+  if (!user) return null;
+
+  const metadata = user.user_metadata ?? {};
+  const username = (metadata.username as string) ?? user.email?.split("@")[0] ?? "user";
+  const name = (metadata.name as string) ?? username;
+  const role = (metadata.role as User["role"]) ?? "viewer";
+
+  return {
+    id: user.id,
+    username,
+    name,
+    email: user.email ?? "",
+    role,
+    initials: name
+      .split(" ")
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase(),
   };
-  return encodeSession(session);
-}
-
-export function parseSessionToken(token: string): Session | null {
-  return decodeSession(token);
 }

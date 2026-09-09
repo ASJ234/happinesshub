@@ -25,10 +25,10 @@ export default async function SettingsPage() {
           />
         </div>
         <div>
-          <label className="text-sm text-muted block mb-1.5">Email</label>
+          <label className="text-sm text-muted block mb-1.5">Username</label>
           <input
-            type="email"
-            defaultValue={user?.email}
+            type="text"
+            defaultValue={user?.username}
             className="w-full bg-surface-elevated border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
           />
         </div>

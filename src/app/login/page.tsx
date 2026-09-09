@@ -3,29 +3,40 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import type { Role } from "@/lib/roles";
-import { DEMO_USERS, ROLE_LABELS } from "@/lib/roles";
 
-const roles: Role[] = ["viewer", "creator", "admin"];
+type Mode = "signin" | "signup";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [selectedRole, setSelectedRole] = useState<Role>("creator");
+  const [mode, setMode] = useState<Mode>("signin");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  async function handleLogin() {
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
     setLoading(true);
+    setError("");
+
     try {
-      const res = await fetch("/api/auth/login", {
+      const res = await fetch(`/api/auth/${mode}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: selectedRole }),
+        body: JSON.stringify({ username, password }),
       });
 
-      if (res.ok) {
-        router.push("/dashboard");
-        router.refresh();
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error ?? "Something went wrong");
+        return;
       }
+
+      router.push("/dashboard");
+      router.refresh();
+    } catch {
+      setError("Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -38,8 +49,8 @@ export default function LoginPage() {
           <Image
             src="/happinesshub-logo.png"
             alt="HappinessHub"
-            width={280}
-            height={120}
+            width={180}
+            height={80}
             className="mx-auto object-contain mb-4"
             priority
           />
@@ -49,59 +60,86 @@ export default function LoginPage() {
         </div>
 
         <div className="bg-surface border border-border rounded-2xl p-6">
-          <h1 className="text-xl font-semibold mb-1">Welcome back</h1>
-          <p className="text-sm text-muted mb-6">
-            Sign in to access your dashboard. Choose a role to explore role-based features.
-          </p>
-
-          <div className="space-y-3 mb-6">
-            <label className="text-sm font-medium text-muted">Select your role</label>
-            {roles.map((role) => {
-              const user = DEMO_USERS[role];
-              const isSelected = selectedRole === role;
-
-              return (
-                <button
-                  key={role}
-                  onClick={() => setSelectedRole(role)}
-                  className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-all text-left ${
-                    isSelected
-                      ? "border-primary bg-primary/10"
-                      : "border-border hover:border-primary/30 hover:bg-surface-elevated"
-                  }`}
-                >
-                  <div className="w-10 h-10 rounded-full gradient-brand flex items-center justify-center text-white text-sm font-bold shrink-0">
-                    {user.initials}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-sm">{user.name}</p>
-                    <p className="text-xs text-muted">{user.email}</p>
-                  </div>
-                  <span
-                    className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                      isSelected
-                        ? "bg-primary text-white"
-                        : "bg-surface-elevated text-muted"
-                    }`}
-                  >
-                    {ROLE_LABELS[role]}
-                  </span>
-                </button>
-              );
-            })}
+          <div className="flex bg-surface-elevated rounded-xl p-1 mb-6">
+            {(["signin", "signup"] as Mode[]).map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => {
+                  setMode(m);
+                  setError("");
+                }}
+                className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  mode === m
+                    ? "bg-primary text-white"
+                    : "text-muted hover:text-foreground"
+                }`}
+              >
+                {m === "signin" ? "Sign In" : "Sign Up"}
+              </button>
+            ))}
           </div>
 
-          <button
-            onClick={handleLogin}
-            disabled={loading}
-            className="w-full gradient-brand text-white font-medium py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
-            {loading ? "Signing in..." : "Continue to Dashboard"}
-          </button>
-
-          <p className="text-[11px] text-muted text-center mt-4">
-            Demo mode — role selection controls which features you can access.
+          <h1 className="text-xl font-semibold mb-1">
+            {mode === "signin" ? "Welcome back" : "Create your account"}
+          </h1>
+          <p className="text-sm text-muted mb-6">
+            {mode === "signin"
+              ? "Sign in with your username and password."
+              : "Pick a username and password to join."}
           </p>
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="text-sm font-medium text-muted block mb-1.5">
+                Username
+              </label>
+              <input
+                type="text"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                placeholder="your_username"
+                autoComplete="username"
+                className="w-full bg-surface-elevated border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="text-sm font-medium text-muted block mb-1.5">
+                Password
+              </label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                autoComplete={
+                  mode === "signin" ? "current-password" : "new-password"
+                }
+                className="w-full bg-surface-elevated border border-border rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                required
+              />
+            </div>
+
+            {error && (
+              <p className="text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+                {error}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading || !username || !password}
+              className="w-full gradient-brand text-white font-medium py-3 rounded-xl hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              {loading
+                ? "Please wait..."
+                : mode === "signin"
+                ? "Sign In"
+                : "Create Account"}
+            </button>
+          </form>
         </div>
       </div>
     </div>

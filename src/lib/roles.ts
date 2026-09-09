@@ -3,7 +3,8 @@ export type Role = "viewer" | "creator" | "admin";
 export interface User {
   id: string;
   name: string;
-  email: string;
+  username: string;
+  email?: string;
   role: Role;
   initials: string;
 }
@@ -48,6 +49,7 @@ export const DEMO_USERS: Record<Role, User> = {
   viewer: {
     id: "1",
     name: "Jane Viewer",
+    username: "jane_viewer",
     email: "viewer@happinesshub.com",
     role: "viewer",
     initials: "JV",
@@ -55,6 +57,7 @@ export const DEMO_USERS: Record<Role, User> = {
   creator: {
     id: "2",
     name: "John Creator",
+    username: "john_creator",
     email: "creator@happinesshub.com",
     role: "creator",
     initials: "JC",
@@ -62,6 +65,7 @@ export const DEMO_USERS: Record<Role, User> = {
   admin: {
     id: "3",
     name: "Alex Admin",
+    username: "alex_admin",
     email: "admin@happinesshub.com",
     role: "admin",
     initials: "AA",

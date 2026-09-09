@@ -22,16 +22,20 @@ export async function POST(request: Request) {
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
+  const { error } = await supabase.auth.signUp({
     email: usernameToEmail(username),
     password,
+    options: {
+      data: {
+        username,
+        name: username,
+        role: "viewer",
+      },
+    },
   });
 
   if (error) {
-    return NextResponse.json(
-      { error: error.message === "Invalid login credentials" ? "Incorrect username or password" : error.message },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
   return NextResponse.json({ success: true });
