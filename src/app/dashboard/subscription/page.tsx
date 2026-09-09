@@ -1,15 +1,14 @@
 import { CreditCard } from "lucide-react";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export default function SubscriptionPage() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <CreditCard className="text-primary" size={28} />
-        <div>
-          <h1 className="text-2xl font-bold">Subscription</h1>
-          <p className="text-muted text-sm">Manage your creator subscription tiers</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={<CreditCard className="text-primary" size={28} />}
+        title="Subscription"
+        description="Manage your creator subscription tiers"
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
         <div className="bg-surface border border-border rounded-xl p-6">

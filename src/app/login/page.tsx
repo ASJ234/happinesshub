@@ -20,23 +20,30 @@ export default function LoginPage() {
     setError("");
 
     try {
-      const res = await fetch(`/api/auth/${mode}`, {
+      const endpoint = mode === "signin" ? "/api/auth/login" : "/api/auth/signup";
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ username, password }),
       });
 
-      const data = await res.json();
+      const text = await res.text();
+      let data: { error?: string } = {};
+      try {
+        data = JSON.parse(text);
+      } catch {
+        data = { error: `Unexpected response (${res.status}): ${text.slice(0, 200)}` };
+      }
 
       if (!res.ok) {
-        setError(data.error ?? "Something went wrong");
+        setError(data.error ?? `Something went wrong (${res.status})`);
         return;
       }
 
       router.push("/dashboard");
       router.refresh();
-    } catch {
-      setError("Something went wrong");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
       setLoading(false);
     }

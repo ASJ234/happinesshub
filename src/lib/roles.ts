@@ -1,3 +1,6 @@
+import type { LucideIcon } from "lucide-react";
+import { UtensilsCrossed, Star, Radio, Zap, ImageIcon } from "lucide-react";
+
 export type Role = "viewer" | "creator" | "admin";
 
 export interface User {
@@ -12,7 +15,7 @@ export interface User {
 export interface NavItem {
   label: string;
   href: string;
-  icon: string;
+  icon: LucideIcon;
   roles: Role[];
   section?: "main" | "creator";
 }
@@ -24,11 +27,11 @@ export const ROLE_LABELS: Record<Role, string> = {
 };
 
 export const NAV_ITEMS: NavItem[] = [
-  { label: "Appetizers", href: "/dashboard/appetizers", icon: "utensils-crossed", roles: ["viewer", "creator", "admin"], section: "main" },
-  { label: "Celebrity Leaks", href: "/dashboard/celebrity-leaks", icon: "star", roles: ["viewer", "creator", "admin"], section: "main" },
-  { label: "Live Sex", href: "/dashboard/live-sex", icon: "radio", roles: ["viewer", "creator", "admin"], section: "main" },
-  { label: "Quickies", href: "/dashboard/quickies", icon: "zap", roles: ["viewer", "creator", "admin"], section: "main" },
-  { label: "Picha", href: "/dashboard/picha", icon: "image", roles: ["viewer", "creator", "admin"], section: "main" },
+  { label: "Appetizers", href: "/dashboard/appetizers", icon: UtensilsCrossed, roles: ["viewer", "creator", "admin"], section: "main" },
+  { label: "Celebrity Leaks", href: "/dashboard/celebrity-leaks", icon: Star, roles: ["viewer", "creator", "admin"], section: "main" },
+  { label: "Live Sex", href: "/dashboard/live-sex", icon: Radio, roles: ["viewer", "creator", "admin"], section: "main" },
+  { label: "Quickies", href: "/dashboard/quickies", icon: Zap, roles: ["viewer", "creator", "admin"], section: "main" },
+  { label: "Picha", href: "/dashboard/picha", icon: ImageIcon, roles: ["viewer", "creator", "admin"], section: "main" },
 ];
 
 export function hasRole(userRole: Role, required: Role[]): boolean {

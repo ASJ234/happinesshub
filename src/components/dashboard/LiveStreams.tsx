@@ -3,7 +3,7 @@ import { liveStreams } from "@/lib/mock-data";
 export function LiveStreams() {
   return (
     <section>
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-semibold">Live Stream</h2>
           <div className="flex items-center gap-1.5 text-sm text-muted">

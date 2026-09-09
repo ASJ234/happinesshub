@@ -1,21 +1,20 @@
 import { getCurrentUser } from "@/lib/auth";
 import { Settings } from "lucide-react";
 import { ROLE_LABELS } from "@/lib/roles";
+import { PageHeader } from "@/components/ui/PageHeader";
 
 export default async function SettingsPage() {
   const user = await getCurrentUser();
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Settings className="text-primary" size={28} />
-        <div>
-          <h1 className="text-2xl font-bold">Settings</h1>
-          <p className="text-muted text-sm">Manage your account and preferences</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={<Settings className="text-primary" size={28} />}
+        title="Settings"
+        description="Manage your account and preferences"
+      />
 
-      <div className="bg-surface border border-border rounded-2xl p-6 max-w-lg space-y-5">
+      <div className="bg-surface border border-border rounded-xl p-6 max-w-lg space-y-5">
         <div>
           <label className="text-sm text-muted block mb-1.5">Display Name</label>
           <input

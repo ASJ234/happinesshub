@@ -19,7 +19,7 @@ export function UploadWidget() {
           <p className="text-xs text-muted">or click to browse files from your device</p>
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <button className="flex-1 bg-white text-gray-900 text-sm font-medium py-2.5 px-4 rounded-lg hover:bg-gray-100 transition-colors">
             Select File
           </button>

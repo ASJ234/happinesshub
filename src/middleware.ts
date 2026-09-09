@@ -50,7 +50,10 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (!user) {
-    if (pathname === "/" || pathname.startsWith("/dashboard")) {
+    if (pathname === "/" || pathname === "/dashboard") {
+      return response;
+    }
+    if (pathname.startsWith("/dashboard")) {
       return NextResponse.redirect(new URL("/login", request.url));
     }
     return response;

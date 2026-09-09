@@ -1,36 +1,30 @@
 import { MessageCircle } from "lucide-react";
-
-const comments = [
-  { user: "Sarah M.", text: "Great tutorial! Really helped me understand the concepts.", video: "Getting Started with Next.js 16", time: "2h ago" },
-  { user: "Mike T.", text: "Can you do a follow-up on authentication?", video: "Dark Mode UI Design Tips", time: "5h ago" },
-  { user: "Emma L.", text: "Love the dark mode design in this one 🔥", video: "Dark Mode UI Design Tips", time: "1d ago" },
-];
+import { PageHeader } from "@/components/ui/PageHeader";
+import { mockComments } from "@/lib/mock-data";
 
 export default function CommentsPage() {
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <MessageCircle className="text-primary" size={28} />
-        <div>
-          <h1 className="text-2xl font-bold">Comments</h1>
-          <p className="text-muted text-sm">Manage and respond to viewer comments</p>
-        </div>
-      </div>
+      <PageHeader
+        icon={<MessageCircle className="text-primary" size={28} />}
+        title="Comments"
+        description="Manage and respond to viewer comments"
+      />
 
       <div className="space-y-3">
-        {comments.map((comment) => (
+        {mockComments.map((comment) => (
           <div key={comment.text} className="bg-surface border border-border rounded-xl p-4">
-            <div className="flex items-start justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full gradient-brand flex items-center justify-center text-white text-xs font-bold">
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <div className="flex items-center gap-2 min-w-0">
+                <div className="w-8 h-8 rounded-full gradient-brand flex items-center justify-center text-white text-xs font-bold shrink-0">
                   {comment.user.split(" ").map((n) => n[0]).join("")}
                 </div>
-                <div>
-                  <p className="text-sm font-medium">{comment.user}</p>
-                  <p className="text-[11px] text-muted">on {comment.video}</p>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium truncate">{comment.user}</p>
+                  <p className="text-[11px] text-muted truncate">on {comment.video}</p>
                 </div>
               </div>
-              <span className="text-[11px] text-muted">{comment.time}</span>
+              <span className="text-[11px] text-muted shrink-0">{comment.time}</span>
             </div>
             <p className="text-sm text-muted ml-10">{comment.text}</p>
             <div className="flex gap-2 mt-3 ml-10">
