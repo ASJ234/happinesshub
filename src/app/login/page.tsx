@@ -56,8 +56,8 @@ export default function LoginPage() {
           <Image
             src="/happinesshub-logo.png"
             alt="HappinessHub"
-            width={180}
-            height={80}
+            width={160}
+            height={108}
             className="mx-auto object-contain mb-4"
             priority
           />

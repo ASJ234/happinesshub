@@ -7,9 +7,9 @@ interface LogoProps {
 }
 
 const sizes = {
-  sm: { height: 32, width: 120 },
-  md: { height: 48, width: 180 },
-  lg: { height: 80, width: 280 },
+  sm: { height: 50, width: 74 },
+  md: { height: 100, width: 148 },
+  lg: { height: 150, width: 222 },
 };
 
 export function Logo({ size = "sm", showTagline = false }: LogoProps) {
@@ -23,7 +23,6 @@ export function Logo({ size = "sm", showTagline = false }: LogoProps) {
         width={width}
         height={height}
         className="object-contain"
-        style={{ height, width: "auto", maxWidth: width }}
         priority
       />
       {showTagline && (
