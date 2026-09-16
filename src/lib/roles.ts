@@ -1,5 +1,5 @@
 import type { LucideIcon } from "lucide-react";
-import { UtensilsCrossed, Star, Radio, Zap, ImageIcon } from "lucide-react";
+import { UtensilsCrossed, Star, Radio, Zap, ImageIcon, Hand, Sparkles } from "lucide-react";
 
 export type Role = "viewer" | "creator" | "admin";
 
@@ -32,6 +32,8 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Live Sex", href: "/dashboard/live-sex", icon: Radio, roles: ["viewer", "creator", "admin"], section: "main" },
   { label: "Quickies", href: "/dashboard/quickies", icon: Zap, roles: ["viewer", "creator", "admin"], section: "main" },
   { label: "Picha", href: "/dashboard/picha", icon: ImageIcon, roles: ["viewer", "creator", "admin"], section: "main" },
+  { label: "Hookup Corner", href: "/dashboard/hookup-corner", icon: Sparkles, roles: ["viewer", "creator", "admin"], section: "main" },
+  { label: "Masseuse", href: "/dashboard/masseuse", icon: Hand, roles: ["viewer", "creator", "admin"], section: "main" },
 ];
 
 export function hasRole(userRole: Role, required: Role[]): boolean {
