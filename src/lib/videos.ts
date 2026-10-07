@@ -92,13 +92,14 @@ export function formatUgx(amount: number): string {
 interface FetchVideosOptions {
   category?: string;
   creatorId?: string;
+  search?: string;
   publishedOnly?: boolean;
   limit?: number;
 }
 
 export async function fetchVideos(
   supabase: SupabaseClient,
-  { category, creatorId, publishedOnly = true, limit = 60 }: FetchVideosOptions = {}
+  { category, creatorId, search, publishedOnly = true, limit = 60 }: FetchVideosOptions = {}
 ): Promise<VideoRow[]> {
   let query = supabase
     .from("videos")
@@ -109,6 +110,14 @@ export async function fetchVideos(
   if (category) query = query.eq("category", category);
   if (creatorId) query = query.eq("creator_id", creatorId);
   if (publishedOnly) query = query.eq("status", "published");
+  if (search) {
+    // Escape the LIKE wildcards so user input matches literally.
+    const escaped = search
+      .replace(/\\/g, "\\\\")
+      .replace(/%/g, "\\%")
+      .replace(/_/g, "\\_");
+    query = query.ilike("title", `%${escaped}%`);
+  }
 
   const { data, error } = await query;
   if (error) {
