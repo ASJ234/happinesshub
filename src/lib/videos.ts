@@ -1,0 +1,145 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Role, User } from "./roles";
+
+export const VIDEO_CATEGORIES = [
+  { value: "appetizers", label: "Appetizers" },
+  { value: "celebrity-leaks", label: "Celebrity Leaks" },
+  { value: "live-sex", label: "Live Sex" },
+  { value: "quickies", label: "Quickies" },
+  { value: "picha", label: "Picha" },
+  { value: "hookup-corner", label: "Hookup Corner" },
+  { value: "masseuse", label: "Masseuse" },
+  { value: "explore", label: "General" },
+] as const;
+
+export type VideoCategory = (typeof VIDEO_CATEGORIES)[number]["value"];
+
+export interface VideoRow {
+  id: string;
+  creator_id: string;
+  title: string;
+  description: string | null;
+  category: string;
+  video_path: string;
+  thumbnail_path: string | null;
+  views: number;
+  status: "published" | "draft" | "scheduled";
+  created_at: string;
+  creator: { username: string; display_name: string | null } | null;
+}
+
+export function creatorLabel(video: VideoRow): string {
+  return video.creator?.display_name || video.creator?.username || "Unknown";
+}
+
+/**
+ * Padlock rule: admins watch anything, creators watch their own uploads for
+ * free, everyone else needs an active (admin-approved) subscription.
+ */
+export function isVideoUnlocked(
+  video: Pick<VideoRow, "creator_id">,
+  viewer: Pick<User, "id" | "role"> | null,
+  hasActiveSubscription: boolean
+): boolean {
+  if (!viewer) return false;
+  if (viewer.role === "admin") return true;
+  if (video.creator_id === viewer.id) return true;
+  return hasActiveSubscription;
+}
+
+export async function hasActiveSubscription(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<boolean> {
+  const { data } = await supabase
+    .from("subscriptions")
+    .select("expires_at")
+    .eq("user_id", userId)
+    .eq("status", "active");
+
+  return (data ?? []).some(
+    (row) => !row.expires_at || new Date(row.expires_at).getTime() > Date.now()
+  );
+}
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  amount: number;
+  duration_days: number;
+  sort_order: number;
+}
+
+export async function fetchSubscriptionPlans(
+  supabase: SupabaseClient
+): Promise<SubscriptionPlan[]> {
+  const { data, error } = await supabase
+    .from("subscription_plans")
+    .select("*")
+    .order("sort_order", { ascending: true });
+
+  if (error) {
+    console.warn(`[plans] fetch failed: ${error.message}`);
+    return [];
+  }
+  return (data ?? []) as SubscriptionPlan[];
+}
+
+export function formatUgx(amount: number): string {
+  return `UGX ${Number(amount).toLocaleString()}`;
+}
+
+interface FetchVideosOptions {
+  category?: string;
+  creatorId?: string;
+  publishedOnly?: boolean;
+  limit?: number;
+}
+
+export async function fetchVideos(
+  supabase: SupabaseClient,
+  { category, creatorId, publishedOnly = true, limit = 60 }: FetchVideosOptions = {}
+): Promise<VideoRow[]> {
+  let query = supabase
+    .from("videos")
+    .select("*, creator:creator_id(username, display_name)")
+    .order("created_at", { ascending: false })
+    .limit(limit);
+
+  if (category) query = query.eq("category", category);
+  if (creatorId) query = query.eq("creator_id", creatorId);
+  if (publishedOnly) query = query.eq("status", "published");
+
+  const { data, error } = await query;
+  if (error) {
+    console.warn(`[videos] fetch failed: ${error.message}`);
+    return [];
+  }
+  return (data ?? []) as VideoRow[];
+}
+
+export function thumbnailUrl(
+  supabase: SupabaseClient,
+  path: string | null
+): string | null {
+  if (!path) return null;
+  return supabase.storage.from("thumbnails").getPublicUrl(path).data.publicUrl;
+}
+
+export function formatViews(views: number): string {
+  if (views >= 1_000_000) return `${(views / 1_000_000).toFixed(1)}M`;
+  if (views >= 1_000) return `${(views / 1_000).toFixed(1)}K`;
+  return String(views);
+}
+
+export function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+export function roleLabel(role: Role): string {
+  return role.charAt(0).toUpperCase() + role.slice(1);
+}

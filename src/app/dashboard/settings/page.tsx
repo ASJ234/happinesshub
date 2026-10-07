@@ -1,7 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { Settings } from "lucide-react";
-import { ROLE_LABELS } from "@/lib/roles";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { RoleSection } from "@/components/settings/RoleSection";
 
 export default async function SettingsPage() {
   const user = await getCurrentUser();
@@ -33,12 +33,7 @@ export default async function SettingsPage() {
         </div>
         <div>
           <label className="text-sm text-muted block mb-1.5">Role</label>
-          <div className="flex items-center gap-2">
-            <span className="bg-primary/20 text-primary text-sm font-medium px-3 py-1.5 rounded-lg">
-              {user ? ROLE_LABELS[user.role] : "—"}
-            </span>
-            <span className="text-xs text-muted">Contact admin to change role</span>
-          </div>
+          {user && <RoleSection user={user} />}
         </div>
         <button className="gradient-brand text-white font-medium px-6 py-2.5 rounded-lg hover:opacity-90 transition-opacity">
           Save Changes

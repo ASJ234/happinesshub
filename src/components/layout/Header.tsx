@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Logo } from "./Logo";
 import type { User } from "@/lib/roles";
-import { NAV_ITEMS, ROLE_LABELS } from "@/lib/roles";
+import { getNavForRole, ROLE_LABELS } from "@/lib/roles";
 
 interface HeaderProps {
   user: User | null;
@@ -32,8 +32,10 @@ export function Header({ user }: HeaderProps) {
       <div className="flex items-center gap-3 h-14 px-3 sm:px-4">
         <Logo size="sm" />
 
-        <nav className="hidden lg:flex items-center gap-1 text-sm">
-          {NAV_ITEMS.map((item) => {
+        <nav className="hidden lg:flex items-center gap-1 text-sm min-w-0 overflow-x-auto no-scrollbar">
+          {getNavForRole(user?.role ?? "viewer")
+            .filter((item) => item.section === "main")
+            .map((item) => {
             const isActive = pathname === item.href;
             return (
               <Link

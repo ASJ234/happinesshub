@@ -7,6 +7,7 @@ export default function HookupCornerPage() {
       icon={Sparkles}
       title="Hookup Corner"
       description="Casual encounters and hookup content"
+      category="hookup-corner"
     />
   );
 }

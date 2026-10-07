@@ -7,6 +7,7 @@ export default function PichaPage() {
       icon={ImageIcon}
       title="Picha"
       description="Photo galleries and image collections"
+      category="picha"
     />
   );
 }

@@ -1,10 +1,13 @@
+import { requireRole } from "@/lib/auth";
 import { BarChart3 } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { Card } from "@/components/ui/Card";
 import { analyticsStats } from "@/lib/mock-data";
 
-export default function AnalyticsPage() {
+export default async function AnalyticsPage() {
+  await requireRole("creator", "admin");
+
   return (
     <div className="space-y-6">
       <PageHeader

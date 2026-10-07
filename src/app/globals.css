@@ -74,3 +74,11 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: var(--muted);
 }
+
+.no-scrollbar {
+  scrollbar-width: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

@@ -7,6 +7,7 @@ export default function QuickiesPage() {
       icon={Zap}
       title="Quickies"
       description="Fast, short adult videos for a quick fix"
+      category="quickies"
     />
   );
 }

@@ -7,6 +7,7 @@ export default function CelebrityLeaksPage() {
       icon={Star}
       title="Celebrity Leaks"
       description="The latest celebrity videos and exclusive leaked content"
+      category="celebrity-leaks"
     />
   );
 }

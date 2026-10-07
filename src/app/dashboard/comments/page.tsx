@@ -1,8 +1,11 @@
+import { requireRole } from "@/lib/auth";
 import { MessageCircle } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { mockComments } from "@/lib/mock-data";
 
-export default function CommentsPage() {
+export default async function CommentsPage() {
+  await requireRole("creator", "admin");
+
   return (
     <div className="space-y-6">
       <PageHeader

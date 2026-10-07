@@ -1,9 +1,12 @@
+import { requireRole } from "@/lib/auth";
 import { UploadCloud } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { UploadWidget } from "@/components/dashboard/UploadWidget";
 import { UploadTips } from "@/components/dashboard/UploadTips";
 
-export default function UploadPage() {
+export default async function UploadPage() {
+  await requireRole("creator", "admin");
+
   return (
     <div className="space-y-6">
       <PageHeader

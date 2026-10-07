@@ -1,9 +1,12 @@
+import { requireRole } from "@/lib/auth";
 import { LayoutDashboard } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { creatorStats } from "@/lib/mock-data";
 
-export default function CreatorDashboardPage() {
+export default async function CreatorDashboardPage() {
+  await requireRole("creator", "admin");
+
   return (
     <div className="space-y-6">
       <PageHeader

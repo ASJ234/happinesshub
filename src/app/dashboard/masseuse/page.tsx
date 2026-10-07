@@ -7,6 +7,7 @@ export default function MasseusePage() {
       icon={Hand}
       title="Masseuse"
       description="Massage and relaxation content"
+      category="masseuse"
     />
   );
 }

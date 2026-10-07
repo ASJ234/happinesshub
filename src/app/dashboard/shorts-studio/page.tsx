@@ -1,8 +1,11 @@
+import { requireRole } from "@/lib/auth";
 import { Zap } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ShortsClips } from "@/components/dashboard/ShortsClips";
 
-export default function ShortsStudioPage() {
+export default async function ShortsStudioPage() {
+  await requireRole("creator", "admin");
+
   return (
     <div className="space-y-8">
       <PageHeader

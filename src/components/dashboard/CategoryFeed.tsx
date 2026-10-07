@@ -1,15 +1,20 @@
 import type { LucideIcon } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { LiveStreams } from "./LiveStreams";
-import { ShortsClips } from "./ShortsClips";
+import { VideoGrid } from "./VideoGrid";
 
 interface CategoryFeedProps {
   icon: LucideIcon;
   title: string;
   description: string;
+  category: string;
 }
 
-export function CategoryFeed({ icon: Icon, title, description }: CategoryFeedProps) {
+export async function CategoryFeed({
+  icon: Icon,
+  title,
+  description,
+  category,
+}: CategoryFeedProps) {
   return (
     <div className="space-y-8">
       <PageHeader
@@ -17,8 +22,7 @@ export function CategoryFeed({ icon: Icon, title, description }: CategoryFeedPro
         title={title}
         description={description}
       />
-      <LiveStreams />
-      <ShortsClips />
+      <VideoGrid category={category} />
     </div>
   );
 }

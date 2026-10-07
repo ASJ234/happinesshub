@@ -1,9 +1,12 @@
+import { requireRole } from "@/lib/auth";
 import { Radio } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { LiveStreams } from "@/components/dashboard/LiveStreams";
 
-export default function LiveStudioPage() {
+export default async function LiveStudioPage() {
+  await requireRole("creator", "admin");
+
   return (
     <div className="space-y-8">
       <PageHeader

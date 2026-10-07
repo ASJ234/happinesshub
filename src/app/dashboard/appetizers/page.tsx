@@ -7,6 +7,7 @@ export default function AppetizersPage() {
       icon={UtensilsCrossed}
       title="Appetizers"
       description="Light snacks, short bites, and quick video starters"
+      category="appetizers"
     />
   );
 }

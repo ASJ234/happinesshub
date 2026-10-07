@@ -1,8 +1,11 @@
+import { requireRole } from "@/lib/auth";
 import { DollarSign } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 
-export default function MonetizationPage() {
+export default async function MonetizationPage() {
+  await requireRole("creator", "admin");
+
   return (
     <div className="space-y-6">
       <PageHeader

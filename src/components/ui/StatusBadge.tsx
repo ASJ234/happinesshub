@@ -3,6 +3,8 @@ const STATUS_STYLES: Record<string, string> = {
   Active: "bg-green-500/20 text-green-400",
   Draft: "bg-yellow-500/20 text-yellow-400",
   Scheduled: "bg-blue-500/20 text-blue-400",
+  Pending: "bg-yellow-500/20 text-yellow-400",
+  Rejected: "bg-red-500/20 text-red-400",
   Banned: "bg-red-500/20 text-red-400",
   Viewer: "bg-primary/20 text-primary",
   Creator: "bg-purple-500/20 text-purple-400",

@@ -7,6 +7,7 @@ export default function LiveSexPage() {
       icon={Radio}
       title="Live Sex"
       description="Live adult streams happening right now"
+      category="live-sex"
     />
   );
 }
