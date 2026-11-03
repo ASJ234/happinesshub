@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Eye, Lock, Play } from "lucide-react";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { fetchCategoryAccess } from "@/lib/categories";
 import {
   creatorLabel,
   fetchVideos,
@@ -31,9 +32,10 @@ export async function VideoGrid({
   if (!user) return null;
 
   const supabase = await createClient();
-  const [videos, subscribed] = await Promise.all([
+  const [videos, subscribed, accessMap] = await Promise.all([
     fetchVideos(supabase, { category, creatorId, search, publishedOnly }),
     hasActiveSubscription(supabase, user.id),
+    fetchCategoryAccess(supabase),
   ]);
 
   if (videos.length === 0) {
@@ -48,7 +50,7 @@ export async function VideoGrid({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
       {videos.map((video) => {
-        const unlocked = isVideoUnlocked(video, user, subscribed);
+        const unlocked = isVideoUnlocked(video, user, subscribed, accessMap);
         const href = unlocked
           ? `/dashboard/watch/${video.id}`
           : "/dashboard/subscription";

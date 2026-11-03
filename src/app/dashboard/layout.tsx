@@ -1,7 +1,9 @@
 import { getCurrentUser } from "@/lib/auth";
+import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MobileNav } from "@/components/layout/MobileNav";
+import { WhatsAppButton } from "@/components/support/WhatsAppButton";
 
 export default async function DashboardLayout({
   children,
@@ -9,6 +11,13 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const user = await getCurrentUser();
+  const supabase = await createClient();
+
+  const { data: settings } = await supabase
+    .from("app_settings")
+    .select("support_whatsapp, support_message")
+    .eq("id", true)
+    .maybeSingle();
 
   return (
     <div className="min-h-screen bg-background">
@@ -20,6 +29,12 @@ export default async function DashboardLayout({
           {children}
         </div>
       </main>
+      {settings?.support_whatsapp && (
+        <WhatsAppButton
+          number={settings.support_whatsapp}
+          message={settings.support_message}
+        />
+      )}
     </div>
   );
 }

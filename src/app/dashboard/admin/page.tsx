@@ -16,6 +16,7 @@ import {
   creatorLabel,
   formatDate,
   formatViews,
+  videoStatusLabel,
   type VideoRow,
 } from "@/lib/videos";
 
@@ -27,7 +28,9 @@ export default async function AdminPage() {
     await Promise.all([
       supabase
         .from("profiles")
-        .select("id, username, display_name, role, created_at")
+        .select(
+          "id, username, display_name, role, created_at, verification_exempted"
+        )
         .order("created_at", { ascending: false }),
       supabase
         .from("videos")
@@ -156,11 +159,7 @@ export default async function AdminPage() {
                     </span>
                   </td>
                   <td className="p-4">
-                    <StatusBadge
-                      status={
-                        video.status.charAt(0).toUpperCase() + video.status.slice(1)
-                      }
-                    />
+                    <StatusBadge status={videoStatusLabel(video.status)} />
                   </td>
                   <td className="p-4 text-muted">
                     {formatDate(video.created_at)}

@@ -5,14 +5,35 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AlertCircle, CheckCircle2, CloudUpload, FolderOpen } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
-import { VIDEO_CATEGORIES } from "@/lib/videos";
+import { VIDEO_CATEGORIES, validateUploadForCategory } from "@/lib/categories";
 
 const inputClass =
   "w-full bg-surface-elevated border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50";
 
-async function generateThumbnail(file: File): Promise<Blob | null> {
+interface VideoMeta {
+  width: number | null;
+  height: number | null;
+  durationSeconds: number | null;
+  thumbnail: Blob | null;
+  readable: boolean;
+}
+
+/**
+ * Reads the dimensions and duration of the file and grabs a frame for the
+ * thumbnail. The metadata is what the 9:16 rule is checked against.
+ */
+async function readVideo(file: File): Promise<VideoMeta> {
+  const meta: VideoMeta = {
+    width: null,
+    height: null,
+    durationSeconds: null,
+    thumbnail: null,
+    readable: false,
+  };
+
+  let url: string | null = null;
   try {
-    const url = URL.createObjectURL(file);
+    url = URL.createObjectURL(file);
     const video = document.createElement("video");
     video.preload = "metadata";
     video.muted = true;
@@ -23,9 +44,16 @@ async function generateThumbnail(file: File): Promise<Blob | null> {
       video.onloadeddata = () => resolve();
       video.onerror = () => reject(new Error("could not load video"));
       setTimeout(() => reject(new Error("timeout")), 10_000);
-    }).catch(() => {
-      throw new Error("skip thumbnail");
     });
+
+    meta.width = video.videoWidth || null;
+    meta.height = video.videoHeight || null;
+    meta.durationSeconds = Number.isFinite(video.duration)
+      ? Math.round(video.duration)
+      : null;
+    meta.readable = meta.width !== null && meta.height !== null;
+
+    if (!meta.readable) return meta;
 
     video.currentTime = Math.min(1, (video.duration || 2) / 2);
     await new Promise<void>((resolve) => {
@@ -34,20 +62,22 @@ async function generateThumbnail(file: File): Promise<Blob | null> {
     });
 
     const canvas = document.createElement("canvas");
-    canvas.width = video.videoWidth || 640;
-    canvas.height = video.videoHeight || 360;
+    canvas.width = meta.width || 640;
+    canvas.height = meta.height || 360;
     const ctx = canvas.getContext("2d");
-    if (!ctx) return null;
-    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    if (!ctx) return meta;
 
-    const blob = await new Promise<Blob | null>((resolve) =>
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    meta.thumbnail = await new Promise<Blob | null>((resolve) =>
       canvas.toBlob(resolve, "image/jpeg", 0.8)
     );
-    URL.revokeObjectURL(url);
-    return blob;
   } catch {
-    return null;
+    return meta;
+  } finally {
+    if (url) URL.revokeObjectURL(url);
   }
+
+  return meta;
 }
 
 export function UploadWidget() {
@@ -62,6 +92,7 @@ export function UploadWidget() {
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+  const [pendingReview, setPendingReview] = useState(false);
 
   function pickFile(next: File | null | undefined) {
     if (!next) return;
@@ -102,6 +133,30 @@ export function UploadWidget() {
       return;
     }
 
+    const meta = await readVideo(file);
+    if (!meta.readable) {
+      setUploading(false);
+      setError("Could not read this video file. Try an MP4, MOV or WebM.");
+      return;
+    }
+
+    const problem = validateUploadForCategory(category, meta);
+    if (problem) {
+      setUploading(false);
+      setError(problem);
+      return;
+    }
+
+    // Creators can be exempted from verification by an admin. Everyone else
+    // waits for the video to be reviewed before it goes live.
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("verification_exempted")
+      .eq("id", user.id)
+      .maybeSingle();
+    const exempt = profile?.verification_exempted === true;
+    const status = exempt ? "published" : "pending_review";
+
     const extMatch = file.name.match(/\.([a-z0-9]+)$/i);
     const ext = extMatch ? `.${extMatch[1].toLowerCase()}` : ".mp4";
     const videoPath = `${user.id}/${crypto.randomUUID()}${ext}`;
@@ -117,12 +172,11 @@ export function UploadWidget() {
       return;
     }
 
-    const thumbBlob = await generateThumbnail(file);
-    if (thumbBlob) {
+    if (meta.thumbnail) {
       thumbnailPath = `${user.id}/${crypto.randomUUID()}.jpg`;
       const { error: thumbError } = await supabase.storage
         .from("thumbnails")
-        .upload(thumbnailPath, thumbBlob, { contentType: "image/jpeg" });
+        .upload(thumbnailPath, meta.thumbnail, { contentType: "image/jpeg" });
       if (thumbError) thumbnailPath = null;
     }
 
@@ -133,7 +187,13 @@ export function UploadWidget() {
       category,
       video_path: videoPath,
       thumbnail_path: thumbnailPath,
-      status: "published",
+      status,
+      width: meta.width,
+      height: meta.height,
+      duration_seconds: meta.durationSeconds,
+      aspect: meta.width && meta.height
+        ? `${meta.width}:${meta.height}`
+        : null,
     });
 
     if (insertError) {
@@ -148,6 +208,7 @@ export function UploadWidget() {
     }
 
     setUploading(false);
+    setPendingReview(!exempt);
     setDone(true);
     setFile(null);
     setTitle("");
@@ -162,10 +223,13 @@ export function UploadWidget() {
         <div className="w-12 h-12 rounded-full bg-green-500/15 text-green-400 flex items-center justify-center mx-auto mb-4">
           <CheckCircle2 size={24} />
         </div>
-        <h2 className="text-lg font-semibold mb-1">Video published</h2>
+        <h2 className="text-lg font-semibold mb-1">
+          {pendingReview ? "Video submitted for review" : "Video published"}
+        </h2>
         <p className="text-sm text-muted mb-6">
-          Your video is live. You can watch it for free — others need an active
-          subscription to unlock it.
+          {pendingReview
+            ? "An admin will review your video before it appears in the feeds. You can watch it from My Content in the meantime."
+            : "Your video is live. You can watch it for free — others need an active subscription to unlock it."}
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
@@ -258,11 +322,18 @@ export function UploadWidget() {
               className={inputClass}
             >
               {VIDEO_CATEGORIES.map((c) => (
-                <option key={c.value} value={c.value}>
+                <option key={c.slug} value={c.slug}>
                   {c.label}
                 </option>
               ))}
             </select>
+            {category === "appetizers" || category === "quickies" ? (
+              <p className="text-[11px] text-muted mt-1.5">
+                {category === "quickies"
+                  ? "Vertical (9:16) and 2 minutes or shorter."
+                  : "Vertical (9:16)."}
+              </p>
+            ) : null}
           </div>
           <div className="sm:col-span-2">
             <label className="text-sm text-muted block mb-1.5">
@@ -289,7 +360,7 @@ export function UploadWidget() {
           disabled={uploading}
           className="w-full bg-primary hover:bg-primary-hover text-white text-sm font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {uploading ? "Uploading... this may take a moment" : "Publish video"}
+          {uploading ? "Uploading... this may take a moment" : "Submit video"}
         </button>
       </div>
     </div>

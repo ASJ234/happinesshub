@@ -8,6 +8,8 @@ import {
   Hand,
   Sparkles,
   Compass,
+  Shirt,
+  Flag,
   LayoutDashboard,
   Upload,
   Clapperboard,
@@ -19,6 +21,7 @@ import {
   CreditCard,
   Settings,
   ShieldCheck,
+  Contact,
 } from "lucide-react";
 
 export type Role = "viewer" | "creator" | "admin";
@@ -66,13 +69,15 @@ export const SECTION_ORDER: NavSection[] = [
 ];
 
 export const NAV_ITEMS: NavItem[] = [
-  { label: "Appetizers", href: "/dashboard/appetizers", icon: UtensilsCrossed, roles: ALL_ROLES, section: "main" },
-  { label: "Celebrity Leaks", href: "/dashboard/celebrity-leaks", icon: Star, roles: ALL_ROLES, section: "main" },
-  { label: "Live Sex", href: "/dashboard/live-sex", icon: Radio, roles: ALL_ROLES, section: "main" },
-  { label: "Quickies", href: "/dashboard/quickies", icon: Zap, roles: ALL_ROLES, section: "main" },
   { label: "Picha", href: "/dashboard/picha", icon: ImageIcon, roles: ALL_ROLES, section: "main" },
-  { label: "Hookup Corner", href: "/dashboard/hookup-corner", icon: Sparkles, roles: ALL_ROLES, section: "main" },
+  { label: "Leaks", href: "/dashboard/leaks", icon: Star, roles: ALL_ROLES, section: "main" },
+  { label: "Wardrobe", href: "/dashboard/wardrobe", icon: Shirt, roles: ALL_ROLES, section: "main" },
+  { label: "Exclusively Ugandan", href: "/dashboard/ugandan", icon: Flag, roles: ALL_ROLES, section: "main" },
+  { label: "Appetizers", href: "/dashboard/appetizers", icon: UtensilsCrossed, roles: ALL_ROLES, section: "main" },
+  { label: "Quickies", href: "/dashboard/quickies", icon: Zap, roles: ALL_ROLES, section: "main" },
   { label: "Masseuse", href: "/dashboard/masseuse", icon: Hand, roles: ALL_ROLES, section: "main" },
+  { label: "Hookups", href: "/dashboard/hookups", icon: Sparkles, roles: ALL_ROLES, section: "main" },
+  { label: "Live", href: "/dashboard/live", icon: Radio, roles: ALL_ROLES, section: "main" },
   { label: "Explore", href: "/dashboard/explore", icon: Compass, roles: ALL_ROLES, section: "main" },
 
   { label: "Creator Dashboard", href: "/dashboard/creator-dashboard", icon: LayoutDashboard, roles: CREATOR_ROLES, section: "studio" },
@@ -80,6 +85,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Shorts Studio", href: "/dashboard/shorts-studio", icon: Clapperboard, roles: CREATOR_ROLES, section: "studio" },
   { label: "Live Studio", href: "/dashboard/live-studio", icon: Video, roles: CREATOR_ROLES, section: "studio" },
   { label: "My Content", href: "/dashboard/my-content", icon: FolderOpen, roles: CREATOR_ROLES, section: "studio" },
+  { label: "My Profiles", href: "/dashboard/my-listing", icon: Contact, roles: CREATOR_ROLES, section: "studio" },
   { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3, roles: CREATOR_ROLES, section: "studio" },
   { label: "Comments", href: "/dashboard/comments", icon: MessageSquare, roles: CREATOR_ROLES, section: "studio" },
   { label: "Monetization", href: "/dashboard/monetization", icon: Coins, roles: CREATOR_ROLES, section: "studio" },

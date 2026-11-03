@@ -1,11 +1,13 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { hasActiveSubscription } from "@/lib/videos";
+import { fetchCategoryAccess } from "@/lib/categories";
+import { hasActiveSubscription, isVideoUnlocked } from "@/lib/videos";
 import { createClient } from "@/lib/supabase/server";
 
 // Issues a short-lived signed URL for a video after the app's own access
-// check (admin, own upload, or active subscription). Private bucket files are
-// never exposed directly, and each successful play counts one view.
+// check (admin, own upload, free sector, or active subscription). Private
+// bucket files are never exposed directly, and the storage bucket repeats the
+// same check through public.can_access_video.
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -19,7 +21,7 @@ export async function GET(
   const supabase = await createClient();
   const { data: video, error } = await supabase
     .from("videos")
-    .select("id, creator_id, video_path, status")
+    .select("id, creator_id, category, video_path, status")
     .eq("id", id)
     .maybeSingle();
 
@@ -29,18 +31,17 @@ export async function GET(
 
   const isOwn = video.creator_id === user.id;
   const isAdmin = user.role === "admin";
-  const published = video.status === "published";
 
-  if (!published && !isOwn && !isAdmin) {
+  if (video.status !== "published" && !isOwn && !isAdmin) {
     return NextResponse.json({ error: "Video not found" }, { status: 404 });
   }
 
-  let unlocked = isOwn || isAdmin;
-  if (!unlocked) {
-    unlocked = await hasActiveSubscription(supabase, user.id);
-  }
+  const [subscribed, accessMap] = await Promise.all([
+    hasActiveSubscription(supabase, user.id),
+    fetchCategoryAccess(supabase),
+  ]);
 
-  if (!unlocked) {
+  if (!isVideoUnlocked(video, user, subscribed, accessMap)) {
     return NextResponse.json(
       { error: "Subscription required", locked: true },
       { status: 403 }
@@ -59,7 +60,7 @@ export async function GET(
     );
   }
 
-  await supabase.rpc("increment_video_views", { p_video_id: id });
-
+  // Views are recorded by the player itself (POST /api/videos/[id]/view) so
+  // that the daily-unique rule can be applied server-side.
   return NextResponse.redirect(signed.signedUrl, { status: 307 });
 }

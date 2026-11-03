@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "HappinessHub — Pleasure. Passion. Privacy.",
+  title: "HAPPYPORN.COM — Pleasure. Passion. Privacy.",
   description: "Your premium video streaming and creator platform.",
 };
 

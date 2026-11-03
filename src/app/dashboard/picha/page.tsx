@@ -1,13 +1,14 @@
 import { ImageIcon } from "lucide-react";
-import { CategoryFeed } from "@/components/dashboard/CategoryFeed";
+import { ListingFeed } from "@/components/listings/ListingFeed";
 
 export default function PichaPage() {
   return (
-    <CategoryFeed
+    <ListingFeed
       icon={ImageIcon}
       title="Picha"
-      description="Photo galleries and image collections"
+      description="Photo galleries and picture collections"
       category="picha"
+      emptyMessage="No photo collections yet. Check back soon."
     />
   );
 }

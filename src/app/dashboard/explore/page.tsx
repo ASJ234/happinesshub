@@ -10,7 +10,7 @@ export default function ExplorePage() {
       <PageHeader
         icon={<Compass className="text-primary" size={28} />}
         title="Explore"
-        description="Discover trending content across HappinessHub"
+        description="Discover trending content across HAPPYPORN.COM"
       />
       <section>
         <h2 className="text-lg font-semibold mb-4">Latest Videos</h2>

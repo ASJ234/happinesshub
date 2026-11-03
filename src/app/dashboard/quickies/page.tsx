@@ -6,7 +6,7 @@ export default function QuickiesPage() {
     <CategoryFeed
       icon={Zap}
       title="Quickies"
-      description="Fast, short adult videos for a quick fix"
+      description="Short vertical videos (9:16)"
       category="quickies"
     />
   );

@@ -1,37 +1,38 @@
 import { requireRole } from "@/lib/auth";
 import { Radio } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card } from "@/components/ui/Card";
-import { LiveStreams } from "@/components/dashboard/LiveStreams";
+import { LiveStudioPanel } from "@/components/live/LiveStudioPanel";
+import { fetchLiveStreams } from "@/lib/live";
 
 export default async function LiveStudioPage() {
-  await requireRole("creator", "admin");
+  const user = await requireRole("creator", "admin");
+
+  const supabase = await createClient();
+  const [streams, canGoLive] = await Promise.all([
+    fetchLiveStreams(supabase, { creatorId: user.id, limit: 30 }),
+    supabase.rpc("can_go_live_today").then(({ data }) => Boolean(data)),
+  ]);
+
+  const todayLabel = new Date().toLocaleDateString(undefined, {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
 
   return (
     <div className="space-y-8">
       <PageHeader
         icon={<Radio className="text-primary" size={28} />}
         title="Live Studio"
-        description="Start and manage your live broadcasts"
-        actions={
-          <button className="bg-red-600 hover:bg-red-700 text-white font-medium px-6 py-2.5 rounded-lg transition-colors">
-            Go Live
-          </button>
-        }
+        description="Ask to go live, then broadcast once an admin approves"
       />
 
-      <Card className="p-8 text-center">
-        <Radio size={48} className="text-primary mx-auto mb-4" />
-        <h2 className="text-lg font-semibold mb-2">Ready to broadcast?</h2>
-        <p className="text-muted text-sm max-w-md mx-auto mb-6">
-          Set up your stream title, thumbnail, and category before going live to your audience.
-        </p>
-        <button className="gradient-brand text-white font-medium px-6 py-2.5 rounded-lg hover:opacity-90 transition-opacity">
-          Configure Stream
-        </button>
-      </Card>
-
-      <LiveStreams />
+      <LiveStudioPanel
+        streams={streams}
+        canGoLiveToday={canGoLive}
+        todayLabel={todayLabel}
+      />
     </div>
   );
 }

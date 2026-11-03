@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { Eye, EyeOff } from "lucide-react";
+import { Logo } from "@/components/layout/Logo";
 
 type Mode = "signin" | "signup";
 
@@ -63,14 +63,9 @@ export default function LoginPage() {
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <Image
-            src="/happinesshub-logo.png"
-            alt="HappinessHub"
-            width={160}
-            height={108}
-            className="mx-auto object-contain mb-4"
-            priority
-          />
+          <div className="mb-4 flex justify-center">
+            <Logo size="lg" />
+          </div>
           <p className="text-muted text-sm tracking-widest uppercase">
             Pleasure. Passion. Privacy.
           </p>

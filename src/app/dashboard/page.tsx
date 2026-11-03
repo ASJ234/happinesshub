@@ -14,7 +14,7 @@ export default async function DashboardPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold mb-1">
-          {isSignedIn ? `Welcome back, ${firstName}` : "Welcome to HappinessHub"}
+          {isSignedIn ? `Welcome back, ${firstName}` : "Welcome to HAPPYPORN.COM"}
         </h1>
         <p className="text-muted text-sm">
           {isSignedIn
@@ -36,7 +36,7 @@ export default async function DashboardPage() {
         </div>
       ) : (
         <div className="bg-surface border border-border rounded-2xl p-8 text-center">
-          <h2 className="text-lg font-semibold mb-2">Explore HappinessHub</h2>
+          <h2 className="text-lg font-semibold mb-2">Explore HAPPYPORN.COM</h2>
           <p className="text-muted text-sm max-w-md mx-auto">
             {isSignedIn
               ? "Browse live streams and trending shorts below. Upgrade to a Creator account to upload videos and access studio tools."

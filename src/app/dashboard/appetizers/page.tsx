@@ -6,7 +6,7 @@ export default function AppetizersPage() {
     <CategoryFeed
       icon={UtensilsCrossed}
       title="Appetizers"
-      description="Light snacks, short bites, and quick video starters"
+      description="Appetizing vertical videos (9:16)"
       category="appetizers"
     />
   );

@@ -2,8 +2,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CreditCard, Eye, Lock } from "lucide-react";
 import { requireUser } from "@/lib/auth";
+import { fetchCategoryAccess } from "@/lib/categories";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { VideoPlayer } from "@/components/videos/VideoPlayer";
 import {
   creatorLabel,
   formatDate,
@@ -32,8 +34,11 @@ export default async function WatchPage({
   if (!data) notFound();
   const video = data as VideoRow;
 
-  const subscribed = await hasActiveSubscription(supabase, user.id);
-  const unlocked = isVideoUnlocked(video, user, subscribed);
+  const [subscribed, accessMap] = await Promise.all([
+    hasActiveSubscription(supabase, user.id),
+    fetchCategoryAccess(supabase),
+  ]);
+  const unlocked = isVideoUnlocked(video, user, subscribed, accessMap);
   const thumb = thumbnailUrl(supabase, video.thumbnail_path);
 
   return (
@@ -54,14 +59,10 @@ export default async function WatchPage({
 
       {unlocked ? (
         <div className="space-y-4">
-          <video
-            key={video.id}
+          <VideoPlayer
+            videoId={video.id}
             src={`/api/videos/${video.id}/stream`}
             poster={thumb ?? undefined}
-            controls
-            autoPlay
-            playsInline
-            className="w-full max-h-[70vh] bg-black rounded-xl border border-border"
           />
           <div className="bg-surface border border-border rounded-xl p-5">
             <div className="flex items-center justify-between gap-3 flex-wrap">
@@ -91,7 +92,7 @@ export default async function WatchPage({
           <h2 className="text-lg font-semibold mb-2">This video is locked</h2>
           <p className="text-sm text-muted mb-6">
             Pay the subscription fee to remove padlocks and watch every video
-            on HappinessHub — including this one.
+            on HAPPYPORN.COM — including this one.
           </p>
           <Link
             href="/dashboard/subscription"

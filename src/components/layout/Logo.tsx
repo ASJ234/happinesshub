@@ -1,4 +1,3 @@
-import Image from "next/image";
 import Link from "next/link";
 
 interface LogoProps {
@@ -7,24 +6,20 @@ interface LogoProps {
 }
 
 const sizes = {
-  sm: { height: 50, width: 74 },
-  md: { height: 100, width: 148 },
-  lg: { height: 150, width: 222 },
+  sm: "text-lg",
+  md: "text-2xl",
+  lg: "text-4xl",
 };
 
 export function Logo({ size = "sm", showTagline = false }: LogoProps) {
-  const { height, width } = sizes[size];
-
   return (
     <Link href="/dashboard" className="flex items-center gap-2 shrink-0">
-      <Image
-        src="/happinesshub-logo.png"
-        alt="HappinessHub"
-        width={width}
-        height={height}
-        className="object-contain"
-        priority
-      />
+      <span
+        className={`${sizes[size]} font-black tracking-tight leading-none select-none`}
+      >
+        <span className="text-foreground">HAPPYPORN</span>
+        <span className="gradient-text">.COM</span>
+      </span>
       {showTagline && (
         <span className="hidden lg:block text-[10px] tracking-widest text-muted uppercase">
           Pleasure. Passion. Privacy.

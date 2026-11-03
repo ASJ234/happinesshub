@@ -100,9 +100,9 @@ export type MockUser = {
 };
 
 export const adminUsers: MockUser[] = [
-  { name: "Jane Viewer", email: "viewer@happinesshub.com", role: "Viewer", status: "Active" },
-  { name: "John Creator", email: "creator@happinesshub.com", role: "Creator", status: "Active" },
-  { name: "Alex Admin", email: "admin@happinesshub.com", role: "Admin", status: "Active" },
+  { name: "Jane Viewer", email: "viewer@happyporn.com", role: "Viewer", status: "Active" },
+  { name: "John Creator", email: "creator@happyporn.com", role: "Creator", status: "Active" },
+  { name: "Alex Admin", email: "admin@happyporn.com", role: "Admin", status: "Active" },
   { name: "Spam Bot", email: "bot@spam.com", role: "Viewer", status: "Banned" },
 ];
 

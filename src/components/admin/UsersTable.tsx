@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Save, Trash2 } from "lucide-react";
+import { Save, ShieldCheck, ShieldOff, Trash2 } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
 
@@ -12,6 +12,7 @@ export interface AdminUserRow {
   display_name: string | null;
   role: Role;
   created_at: string;
+  verification_exempted: boolean;
 }
 
 const ROLES: Role[] = ["viewer", "creator", "admin"];
@@ -93,17 +94,46 @@ export function UsersTable({ users, currentUserId }: UsersTableProps) {
     router.refresh();
   }
 
+  async function toggleExempt(row: AdminUserRow) {
+    setBusyId(row.id);
+    setMessage(null);
+
+    const exempt = !row.verification_exempted;
+    const response = await fetch("/api/admin/exemptions", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: row.id, exempt }),
+    });
+
+    const body = await response.json().catch(() => null);
+    setBusyId(null);
+
+    if (!response.ok) {
+      setMessage(body?.error ?? "Could not change the exemption");
+      return;
+    }
+
+    patchRow(row.id, { verification_exempted: exempt });
+    setMessage(
+      exempt
+        ? `@${row.username} is now exempt from upload verification`
+        : `@${row.username} must send videos for review again`
+    );
+    router.refresh();
+  }
+
   return (
     <div className="overflow-x-auto">
       {message && (
         <p className="px-4 pt-3 text-xs text-muted">{message}</p>
       )}
-      <table className="w-full text-sm min-w-[720px]">
+      <table className="w-full text-sm min-w-[860px]">
         <thead>
           <tr className="border-b border-border text-muted text-left">
             <th className="p-4 font-medium">User</th>
             <th className="p-4 font-medium">Display name</th>
             <th className="p-4 font-medium">Role</th>
+            <th className="p-4 font-medium">Upload verification</th>
             <th className="p-4 font-medium">Actions</th>
           </tr>
         </thead>
@@ -149,6 +179,29 @@ export function UsersTable({ users, currentUserId }: UsersTableProps) {
                     </select>
                     <StatusBadge status={ROLE_LABELS[row.role]} />
                   </div>
+                </td>
+                <td className="p-4">
+                  <button
+                    onClick={() => toggleExempt(row)}
+                    disabled={busyId === row.id || isSelf}
+                    className={`inline-flex items-center gap-1.5 text-xs font-medium disabled:opacity-50 ${
+                      row.verification_exempted
+                        ? "text-green-400"
+                        : "text-muted hover:text-foreground"
+                    }`}
+                    title={
+                      row.verification_exempted
+                        ? "Exempt: uploads publish immediately. Click to require review again."
+                        : "Click to exempt this creator from upload verification"
+                    }
+                  >
+                    {row.verification_exempted ? (
+                      <ShieldCheck size={13} />
+                    ) : (
+                      <ShieldOff size={13} />
+                    )}
+                    {row.verification_exempted ? "Exempt" : "Review required"}
+                  </button>
                 </td>
                 <td className="p-4">
                   <div className="flex items-center gap-3">

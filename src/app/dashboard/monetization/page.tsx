@@ -1,34 +1,49 @@
+import { Wallet } from "lucide-react";
 import { requireRole } from "@/lib/auth";
-import { DollarSign } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card } from "@/components/ui/Card";
+import { WalletPanel } from "@/components/wallet/WalletPanel";
+import {
+  fetchTransactions,
+  fetchWallet,
+  fetchWithdrawals,
+} from "@/lib/wallet";
 
 export default async function MonetizationPage() {
-  await requireRole("creator", "admin");
+  const user = await requireRole("creator", "admin");
+
+  const supabase = await createClient();
+
+  const [wallet, transactions, withdrawals, settings, giftBalance] =
+    await Promise.all([
+      fetchWallet(supabase, user.id),
+      fetchTransactions(supabase, user.id),
+      fetchWithdrawals(supabase, user.id),
+      supabase
+        .from("app_settings")
+        .select("payout_method, payout_account")
+        .eq("id", true)
+        .maybeSingle(),
+      supabase.rpc("gift_balance").then(({ data }) => Number(data ?? 0)),
+    ]);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        icon={<DollarSign className="text-primary" size={28} />}
-        title="Monetization"
-        description="Configure ads, sponsorships, and revenue streams"
+        icon={<Wallet className="text-primary" size={28} />}
+        title="Wallet"
+        description="Track your earnings, withdraw money and top up gift credit"
       />
 
-      <Card className="p-6 max-w-lg">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="font-semibold">Ad Revenue</h3>
-            <p className="text-sm text-muted">Enable ads on your videos</p>
-          </div>
-          <div className="w-11 h-6 bg-primary rounded-full relative shrink-0 cursor-pointer">
-            <div className="absolute right-0.5 top-0.5 w-5 h-5 bg-white rounded-full" />
-          </div>
-        </div>
-        <div className="border-t border-border pt-4">
-          <p className="text-sm text-muted mb-1">Estimated monthly earnings</p>
-          <p className="text-3xl font-bold gradient-text">$842.50</p>
-        </div>
-      </Card>
+      <WalletPanel
+        balance={wallet.balance}
+        lifetimeEarnings={wallet.lifetimeEarnings}
+        transactions={transactions}
+        withdrawals={withdrawals}
+        payoutMethod={settings.data?.payout_method ?? "mtn"}
+        payoutAccount={settings.data?.payout_account ?? ""}
+        giftBalance={giftBalance}
+      />
     </div>
   );
 }

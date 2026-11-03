@@ -20,13 +20,16 @@ grant select, insert, update on public.profiles to authenticated;
 grant select on public.profiles to anon;
 
 -- Users can read, create, and update their own profile
-create policy "select own profile" if not exists on public.profiles
+drop policy if exists "select own profile" on public.profiles;
+create policy "select own profile" on public.profiles
   for select using (auth.uid() = id);
 
-create policy "insert own profile" if not exists on public.profiles
+drop policy if exists "insert own profile" on public.profiles;
+create policy "insert own profile" on public.profiles
   for insert with check (auth.uid() = id);
 
-create policy "update own profile" if not exists on public.profiles
+drop policy if exists "update own profile" on public.profiles;
+create policy "update own profile" on public.profiles
   for update using (auth.uid() = id)
   with check (auth.uid() = id);
 

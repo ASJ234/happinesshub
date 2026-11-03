@@ -1,4 +1,4 @@
-# HappinessHub
+# HAPPYPORN.COM
 
 Adult content platform built with Next.js (App Router) and Supabase.
 
@@ -29,96 +29,177 @@ NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
 
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` is accepted as a fallback for the publishable key.
 
-### Database
+## Database
 
-The migrations in `supabase/migrations/` are meant to be run **in order** in the
-Supabase SQL editor (or via `supabase db push`):
+The migrations in `supabase/migrations/` **must be run in order** in the
+Supabase SQL editor. Every file is idempotent, so a failed file can be run
+again. Each file ends with a `select` that shows what it created.
 
-1. `0001_auth_setup.sql` — `public.profiles` table, RLS policies, and the
-   `handle_new_user` trigger.
-2. `0002_security_hardening.sql` — column-level grants (users can only write
-   their own `display_name`), a trigger that blocks user-driven `role`
-   changes, and a `handle_new_user` that always creates accounts as `viewer`.
-3. `0003_content_and_payments.sql` — `videos`, `subscriptions`, and
-   `payment_settings` tables with RLS, the `videos`/`thumbnails` storage
-   buckets, admin RPCs (`admin_review_subscription`, `admin_delete_user`),
-   and the role rules for admin edits + "become a creator" self-upgrade.
-4. `0004_subscription_plans.sql` — the four billing plans, `plan_id` +
-   `expires_at` on subscriptions, expiry-aware access, and plan-based expiry
-   stamped on approval.
+| # | File | What it does |
+| --- | --- | --- |
+| 1 | `0001_auth_setup.sql` | `public.profiles`, RLS, `handle_new_user` trigger |
+| 2 | `0002_security_hardening.sql` | column-level grants, role-escalation trigger |
+| 3 | `0003_content_and_payments.sql` | `videos`, `subscriptions`, `payment_settings`, storage buckets, admin RPCs |
+| 4 | `0004_subscription_plans.sql` | billing plans, expiry-aware access |
+| 5 | `0005_rebrand.sql` | re-points `auth.users` at `@happyporn.local`, rebrands the payment account label |
+| 6 | `0006_settings.sql` | `public.app_settings` (WhatsApp support, payout details, monthly pool, live weekdays) |
+| 7 | `0007_categories.sql` | `public.categories` + the 10 sector seeds, migrates `videos.category` to the new slugs, adds `width/height/duration_seconds/aspect` |
+| 8 | `0008_listings.sql` | `listings`, `listing_contacts`, `listing_photos`, the private `listing-verification` bucket, `admin_review_listing()` |
+| 9 | `0009_upload_verification.sql` | `profiles.verification_exempted`, video review columns, `admin_review_video()`, `admin_set_verification_exemption()` |
+| 10 | `0010_paywall_access.sql` | `can_access_video()` + the access-aware storage read policy |
+| 11 | `0011_views.sql` | `video_views` ledger, `record_video_view()`, `creator_view_counts()` |
+| 12 | `0012_wallet.sql` | `wallets`, `wallet_transactions`, `withdrawal_requests`, `request_withdrawal()`, `run_monthly_payouts()` |
+| 13 | `0013_live.sql` | `live_streams`, `live_chat_messages`, `live_gifts`, `gift_deposits`, the live-day rule, `send_live_gift()` |
+| 14 | `0014_rls_role_scope.sql` | scopes the legacy 0003 policies to `authenticated` (fixes the `is_admin()` 42501 error) |
 
-> The app fails closed: if the `profiles` table is missing, every user is
-> treated as a `viewer` and a warning is logged.
+### Applying them without the SQL editor
+
+```bash
+SUPABASE_ACCESS_TOKEN=<personal access token> node scripts/migrate.mjs
+```
+
+The script posts each file as one multi-statement query, so a failure rolls
+back the whole file. It also accepts `DATABASE_URL` instead of a token.
+
+> The app fails closed: if `profiles` is missing, every user is treated as a
+> `viewer` and a warning is logged. The same applies to every new table — the
+> admin panels show empty states instead of crashing.
+
+## The ten sectors
+
+Six video sectors and four listing sectors. `public.categories` is the
+authority for which sectors are free; `src/lib/categories.ts` mirrors it and
+is used as the fallback (unknown slugs fail closed as **paid**).
+
+| Sector | Kind | Access | Rule |
+| --- | --- | --- | --- |
+| Picha | listing | free | photo galleries and picture collections |
+| Leaks | video | paid | the latest leaked videos |
+| Wardrobe | listing | free | merchants selling sex toys |
+| Exclusively Ugandan | video | paid | only Ugandan-made videos |
+| Appetizers | video | paid | 9:16, max 5 minutes |
+| Quickies | video | paid | 9:16, max 2 minutes |
+| Masseuse | listing | free | **admin verification required** |
+| Hookups | listing | free | **admin verification required** |
+| Live | video | paid | live streams and their recordings |
+| Explore | video | paid | everything else |
 
 ## Auth model
 
-- Users sign up with a **username**, which is mapped to the synthetic email
-  `<username>@happinesshub.local` (`src/lib/auth.ts`).
+- Users sign up with a **username**, mapped to `<username>@happyporn.local`
+  (`src/lib/auth.ts`). Migration 0005 re-points existing accounts.
 - **Role lives only in `public.profiles.role`** and is read server-side by
-  `getCurrentUser()`. It is never read from `user_metadata`, which the
-  signed-in user can edit themselves.
+  `getCurrentUser()`. It is never read from `user_metadata`.
 - New accounts are always `viewer`. A viewer may upgrade **only themselves**
-  to `creator` (Settings → "Become a Creator"); any other role change is an
-  admin action from `/dashboard/admin` (or SQL).
-- Route guards (`requireRole`) run in server components; `src/proxy.ts`
-  handles authentication (login required for `/dashboard/*`, with `/` and
-  `/dashboard` acting as the public landing page).
+  to `creator`; any other role change is an admin action.
+- Route guards (`requireRole`) run in server components; `src/proxy.ts` handles
+  authentication for `/dashboard/*`.
 
 | Role | Access |
 | --- | --- |
-| `viewer` | Browse categories, Explore, Subscription, Settings; can become a `creator` |
-| `creator` | + Studio: upload, shorts/live studio, my content, analytics, comments, monetization; watches own uploads free, others stay padlocked until subscribed |
-| `admin` | + `/dashboard/admin`: user CRUD, deposit approval, payment settings, views per video |
+| `viewer` | Browse the sectors, Explore, Subscription, Settings; can become a `creator` |
+| `creator` | + Studio: upload, live studio, my content, my profiles, analytics, wallet; watches own uploads free |
+| `admin` | + `/dashboard/admin`: users, video review, profile verification, live requests, deposits, wallets, settings |
 
-## Content & payments
+## Uploads and verification
 
-- **Upload** (creators): `UploadWidget` uploads the file to the private
-  `videos` bucket (`<user-id>/<uuid>.mp4`, auto-generated thumbnail in the
-  public `thumbnails` bucket) and inserts a row in `public.videos`.
-- **Padlocks**: videos render locked unless the viewer is an admin, the
-  video's own creator, or holds an `active` subscription. Locked playback is
-  enforced twice: app-side (`isVideoUnlocked` in `src/lib/videos.ts`) and at
-  the file level (`/api/videos/[id]/stream` issues a signed URL only after
-  the access check; the storage bucket has matching RLS).
-- **Paying**: the Subscription page offers 4 plans — 24h/UGX 1,000, 3 days/UGX
-  3,000, 1 week/UGX 5,000, 1 month/UGX 10,000 (`subscription_plans` table).
-  The customer picks a plan, deposits to the admin-configured account/number,
-  and submits their transaction reference. It lands as `pending` under Admin →
-  Deposit Requests; approving stamps `expires_at = now() + plan duration` and
-  opens every padlock until then. Expired subscriptions re-lock automatically
-  (`has_active_subscription` + `isVideoUnlocked`).
-- **Admin**: real stats, per-video view counts, user role/display-name edits
-  and deletion (`admin_delete_user`), deposit approve/reject, and editable
-  payment details.
+- **Upload** (creators): `UploadWidget` reads the video metadata, enforces the
+  9:16 and duration rules of the sector, uploads the file to the private
+  `videos` bucket and a thumbnail to the public `thumbnails` bucket.
+- Every upload starts as `pending_review`. An admin approves or rejects it
+  from `/dashboard/admin/videos`.
+- A creator can be **exempted** from review (`profiles.verification_exempted`)
+  from `/dashboard/admin` → the user list. The column is never writable by the
+  creator; only `admin_set_verification_exemption()` changes it.
+- Locked playback is enforced twice: app-side (`isVideoUnlocked` in
+  `src/lib/videos.ts`) and at file level (`can_access_video()` backs the
+  storage policy, and `/api/videos/[id]/stream` issues the signed URL).
+
+## Listings and verification
+
+- Creators publish profiles from `/dashboard/my-listing` (one per sector).
+- Picha and Wardrobe profiles publish immediately. **Masseuse and Hookups**
+  start as `pending` and need an admin at `/dashboard/admin/listings`.
+- Approval requires a full-body photo **and** a face photo, enforced by the
+  `admin_review_listing()` RPC. Body and face photos live in the private
+  `listing-verification` bucket and are only served as short-lived signed URLs
+  to the owner and admins.
+- The phone number and address sit in `listing_contacts` and stay hidden from
+  everyone else until the profile is approved.
+
+## Views and earnings
+
+- A free viewer counts **one view per video per day**; a subscriber counts
+  every play; a creator's own views never count (`record_video_view()`).
+- `videos.views` is the counter shown in the UI. `video_views` is the ledger
+  used for payouts.
+- The **monthly pool** (`app_settings.monthly_pool`, subscription revenue
+  only) is split between creators in proportion to the views they collected in
+  that month. `run_monthly_payouts('2026-10')` is idempotent — running it twice
+  never pays twice.
+- **Live gifts** are credited separately (`wallet_transactions.kind = 'gift'`),
+  so pool income and gift income never blur together.
+- A withdrawal **holds** the amount immediately; rejecting the request refunds
+  it.
+
+## Live
+
+- Creators request a stream at `/dashboard/live-studio`; an admin approves it
+  at `/dashboard/admin/live`.
+- Going live is only allowed on **Wednesday, Friday, Saturday and Sunday**
+  (`app_settings.live_allowed_weekdays`, editable in admin settings). The rule
+  is enforced in the database (`can_go_live_today()`), not just in the UI.
+- Chat runs over Supabase Realtime on `public.live_chat_messages` (migration
+  0013 adds it to the `supabase_realtime` publication).
+- Gifts cost gift credit, which is topped up with the same manual-deposit and
+  admin-approval flow as the subscription.
+- The media itself is provider-agnostic: `src/lib/providers/live.ts` defines
+  the `LiveProvider` interface, and the bundled `LocalProvider` runs the whole
+  workflow without a vendor. Swapping in a real vendor touches that one file.
 
 ## Structure
 
 ```
 src/
 ├── app/
-│   ├── api/auth/          login, signup, logout route handlers
-│   ├── api/admin/         users, subscriptions, payment-settings
-│   ├── api/videos/        delete + signed-URL streaming (access-checked)
-│   ├── login/             sign in / sign up
-│   └── dashboard/         app shell + 23 pages (incl. watch/[id])
+│   ├── api/
+│   │   ├── admin/      users, videos, listings, live, gifts, wallet, settings, exemptions
+│   │   ├── auth/       login, signup, logout
+│   │   ├── gifts/      gift top-ups
+│   │   ├── listings/   profile create/update, photo upload
+│   │   ├── live/       request, start, end, chat, gift
+│   │   ├── videos/     delete, signed-URL streaming, view recording
+│   │   └── wallet/     withdrawals
+│   ├── dashboard/      app shell + the sector, studio, admin and account pages
+│   └── login/
 ├── components/
-│   ├── layout/            Header, Sidebar, MobileNav, Logo
-│   ├── dashboard/         CategoryFeed, VideoGrid, LiveStreams, UploadWidget
-│   ├── admin/             UsersTable, PendingPayments, PaymentSettingsForm
-│   ├── subscription/      SubscriptionPanel (deposit + reference form)
-│   ├── settings/          RoleSection (become a creator)
-│   ├── videos/            DeleteVideoButton
-│   └── ui/                Card, StatCard, StatusBadge, PageHeader
+│   ├── admin/          UsersTable, VideoReviewTable, ListingReviewTable, LiveRequestTable,
+│   │                   GiftDepositTable, WithdrawalTable, PayoutRunner, AdminSettingsPanel, AdminTabs
+│   ├── dashboard/      CategoryFeed, VideoGrid, UploadWidget
+│   ├── layout/         Header, Sidebar, MobileNav, Logo
+│   ├── listings/       ListingFeed, ListingGrid, ListingManager
+│   ├── live/           LiveStreamCard, LiveChat, LiveViewer, LiveStudioPanel
+│   ├── subscription/   SubscriptionPanel
+│   ├── ui/             Card, StatCard, StatusBadge, VerifiedBadge, PageHeader
+│   ├── videos/         VideoPlayer, DeleteVideoButton
+│   └── wallet/         WalletPanel
 ├── lib/
-│   ├── auth.ts            getCurrentUser, requireUser, requireRole
-│   ├── roles.ts           roles, navigation items, section labels
-│   ├── videos.ts          categories, padlock logic, video queries
-│   ├── rate-limit.ts      in-memory limiter for the auth endpoints
-│   └── supabase/          env + server client + browser client
-└── proxy.ts             session check for every route
+│   ├── auth.ts         getCurrentUser, requireUser, requireRole
+│   ├── categories.ts   the ten sectors, access map, upload validation
+│   ├── live.ts         live types and queries
+│   ├── listings.ts     listing queries, photo URLs, contact visibility
+│   ├── providers/      live.ts — the LiveProvider interface
+│   ├── roles.ts        roles and navigation
+│   ├── videos.ts       video types, padlock logic, status labels
+│   ├── wallet.ts       wallet, transactions, withdrawals
+│   └── supabase/       env + server client + browser client
+└── proxy.ts            session check for every route
 ```
 
 ## Current limitations
 
-Live streams, shorts, comments, search, notifications, and the settings form
-still render mock/static UI; analytics charts are placeholders.
+- The live media feed is provider-agnostic: the workflow, chat and gifts all
+  work, but the actual video stream is served by whatever provider is wired
+  into `src/lib/providers/live.ts`.
+- Analytics charts are still placeholders.
+- Leaks takedown and reporting are not implemented.

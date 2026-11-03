@@ -1,18 +1,17 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Role, User } from "./roles";
+import {
+  DEFAULT_ACCESS_MAP,
+  isFreeAccess,
+  type CategoryAccessMap,
+} from "./categories";
 
-export const VIDEO_CATEGORIES = [
-  { value: "appetizers", label: "Appetizers" },
-  { value: "celebrity-leaks", label: "Celebrity Leaks" },
-  { value: "live-sex", label: "Live Sex" },
-  { value: "quickies", label: "Quickies" },
-  { value: "picha", label: "Picha" },
-  { value: "hookup-corner", label: "Hookup Corner" },
-  { value: "masseuse", label: "Masseuse" },
-  { value: "explore", label: "General" },
-] as const;
-
-export type VideoCategory = (typeof VIDEO_CATEGORIES)[number]["value"];
+export type VideoStatus =
+  | "published"
+  | "draft"
+  | "scheduled"
+  | "pending_review"
+  | "rejected";
 
 export interface VideoRow {
   id: string;
@@ -23,7 +22,11 @@ export interface VideoRow {
   video_path: string;
   thumbnail_path: string | null;
   views: number;
-  status: "published" | "draft" | "scheduled";
+  status: VideoStatus;
+  width: number | null;
+  height: number | null;
+  duration_seconds: number | null;
+  aspect: string | null;
   created_at: string;
   creator: { username: string; display_name: string | null } | null;
 }
@@ -34,16 +37,19 @@ export function creatorLabel(video: VideoRow): string {
 
 /**
  * Padlock rule: admins watch anything, creators watch their own uploads for
- * free, everyone else needs an active (admin-approved) subscription.
+ * free, free sectors (picha, wardrobe, masseuse, hookups) are open to everyone,
+ * and every other sector needs an active (admin-approved) subscription.
  */
 export function isVideoUnlocked(
-  video: Pick<VideoRow, "creator_id">,
+  video: Pick<VideoRow, "creator_id" | "category">,
   viewer: Pick<User, "id" | "role"> | null,
-  hasActiveSubscription: boolean
+  hasActiveSubscription: boolean,
+  accessMap: CategoryAccessMap = DEFAULT_ACCESS_MAP
 ): boolean {
   if (!viewer) return false;
   if (viewer.role === "admin") return true;
   if (video.creator_id === viewer.id) return true;
+  if (isFreeAccess(video.category, accessMap)) return true;
   return hasActiveSubscription;
 }
 
@@ -151,4 +157,22 @@ export function formatDate(iso: string): string {
 
 export function roleLabel(role: Role): string {
   return role.charAt(0).toUpperCase() + role.slice(1);
+}
+
+/** Human readable label for a video's review state. */
+export function videoStatusLabel(status: string): string {
+  switch (status) {
+    case "published":
+      return "Published";
+    case "draft":
+      return "Draft";
+    case "scheduled":
+      return "Scheduled";
+    case "pending_review":
+      return "Pending review";
+    case "rejected":
+      return "Rejected";
+    default:
+      return status;
+  }
 }

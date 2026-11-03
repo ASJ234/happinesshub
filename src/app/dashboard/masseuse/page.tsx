@@ -1,13 +1,14 @@
 import { Hand } from "lucide-react";
-import { CategoryFeed } from "@/components/dashboard/CategoryFeed";
+import { ListingFeed } from "@/components/listings/ListingFeed";
 
 export default function MasseusePage() {
   return (
-    <CategoryFeed
+    <ListingFeed
       icon={Hand}
       title="Masseuse"
-      description="Massage and relaxation content"
+      description="Massage ladies available to hire"
       category="masseuse"
+      emptyMessage="No masseuses listed yet. Check back soon."
     />
   );
 }

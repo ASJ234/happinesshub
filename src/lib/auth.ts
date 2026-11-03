@@ -4,7 +4,7 @@ import type { Role, User } from "./roles";
 import { createClient } from "./supabase/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
-const USERNAME_EMAIL_DOMAIN = "happinesshub.local";
+const USERNAME_EMAIL_DOMAIN = "happyporn.local";
 
 export function usernameToEmail(username: string): string {
   return `${username}@${USERNAME_EMAIL_DOMAIN}`;
