@@ -52,5 +52,13 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  return NextResponse.json({ success: true, id: data });
+  // Admins don't need to wait for approval — auto-approve their own requests.
+  if (user.role === "admin") {
+    await supabase.rpc("admin_review_live_stream", {
+      p_id: data,
+      p_status: "approved",
+    });
+  }
+
+  return NextResponse.json({ success: true, id: data, autoApproved: user.role === "admin" });
 }

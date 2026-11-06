@@ -95,7 +95,11 @@ export function LiveStudioPanel({
       return;
     }
 
-    setNotice("Request sent. An admin has to approve it before you can go live.");
+    setNotice(
+      body?.autoApproved
+        ? "Stream approved. Click Go live when you are ready."
+        : "Request sent. An admin has to approve it before you can go live."
+    );
     setTitle("");
     setDescription("");
     setDate("");
