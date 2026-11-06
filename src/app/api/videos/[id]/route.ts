@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
+import { deleteMuxAsset, isMuxApiConfigured } from "@/lib/mux";
 import { createClient } from "@/lib/supabase/server";
 
-// Deletes a video (owner or admin) along with its storage objects.
+// Deletes a video (owner or admin) along with its Mux asset and cover image.
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -16,7 +17,7 @@ export async function DELETE(
   const supabase = await createClient();
   const { data: video, error } = await supabase
     .from("videos")
-    .select("id, creator_id, video_path, thumbnail_path")
+    .select("id, creator_id, thumbnail_path, mux_asset_id")
     .eq("id", id)
     .maybeSingle();
 
@@ -30,7 +31,18 @@ export async function DELETE(
     return NextResponse.json({ error: "Not allowed" }, { status: 403 });
   }
 
-  await supabase.storage.from("videos").remove([video.video_path]);
+  if (video.mux_asset_id && isMuxApiConfigured()) {
+    try {
+      await deleteMuxAsset(video.mux_asset_id);
+    } catch (muxError) {
+      console.warn(`[videos] could not delete Mux asset: ${String(muxError)}`);
+      return NextResponse.json(
+        { error: "Could not delete the Mux asset. Try again." },
+        { status: 502 }
+      );
+    }
+  }
+
   if (video.thumbnail_path) {
     await supabase.storage.from("thumbnails").remove([video.thumbnail_path]);
   }

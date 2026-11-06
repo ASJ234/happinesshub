@@ -1,23 +1,63 @@
 "use client";
 
-import { useState } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import MuxPlayer from "@mux/mux-player-react";
+import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 interface VideoPlayerProps {
   videoId: string;
-  src: string;
   poster?: string;
 }
 
+type Playback = {
+  playbackId: string;
+  tokens: {
+    playback: string;
+    thumbnail: string;
+    storyboard: string;
+  };
+};
+
 /**
- * Records a view whenever playback starts. Free viewers are counted once per
- * video per day; subscribers are counted on every play. The server decides,
- * this only reports the outcome back.
+ * Asks the server for playback details after the access check, then records a
+ * view when playback starts. Free viewers are counted once per video per day;
+ * subscribers are counted on every play. The server decides, this only reports
+ * the outcome back.
  */
-export function VideoPlayer({ videoId, src, poster }: VideoPlayerProps) {
+export function VideoPlayer({ videoId, poster }: VideoPlayerProps) {
+  const [playback, setPlayback] = useState<Playback | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
   const [counted, setCounted] = useState<boolean | null>(null);
+  const recorded = useRef(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch(`/api/videos/${videoId}/stream`)
+      .then(async (response) => {
+        const body = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(body?.error ?? "Could not start playback");
+        }
+        if (!cancelled) setPlayback(body as Playback);
+      })
+      .catch((err: Error) => {
+        if (!cancelled) setError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [videoId]);
 
   async function recordView() {
+    if (recorded.current) return;
+    recorded.current = true;
+
     try {
       const res = await fetch(`/api/videos/${videoId}/view`, { method: "POST" });
       if (!res.ok) return;
@@ -28,12 +68,30 @@ export function VideoPlayer({ videoId, src, poster }: VideoPlayerProps) {
     }
   }
 
+  if (loading) {
+    return (
+      <div className="w-full h-64 bg-black rounded-xl border border-border flex items-center justify-center text-muted">
+        <Loader2 size={22} className="animate-spin" />
+      </div>
+    );
+  }
+
+  if (error || !playback) {
+    return (
+      <div className="w-full h-64 bg-black rounded-xl border border-border flex items-center justify-center px-6 text-center text-sm text-muted">
+        {error ?? "Playback is unavailable right now."}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-2">
-      <video
-        src={src}
+      <MuxPlayer
+        playbackId={playback.playbackId}
+        tokens={playback.tokens}
         poster={poster}
-        controls
+        envKey={process.env.NEXT_PUBLIC_MUX_ENV_KEY}
+        metadataVideoId={videoId}
         autoPlay
         playsInline
         onPlay={recordView}

@@ -34,6 +34,10 @@ export default async function WatchPage({
   if (!data) notFound();
   const video = data as VideoRow;
 
+  const isOwnVideo = video.creator_id === user.id;
+  const isAdmin = user.role === "admin";
+  if (video.status !== "published" && !isOwnVideo && !isAdmin) notFound();
+
   const [subscribed, accessMap] = await Promise.all([
     hasActiveSubscription(supabase, user.id),
     fetchCategoryAccess(supabase),
@@ -59,11 +63,7 @@ export default async function WatchPage({
 
       {unlocked ? (
         <div className="space-y-4">
-          <VideoPlayer
-            videoId={video.id}
-            src={`/api/videos/${video.id}/stream`}
-            poster={thumb ?? undefined}
-          />
+          <VideoPlayer videoId={video.id} poster={thumb ?? undefined} />
           <div className="bg-surface border border-border rounded-xl p-5">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div>

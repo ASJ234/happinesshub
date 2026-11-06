@@ -25,6 +25,15 @@ Create `.env.local`:
 ```
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
+SUPABASE_SERVICE_ROLE_KEY=...        # server only: Mux uploads + webhook
+
+# Mux video hosting
+MUX_TOKEN_ID=...
+MUX_TOKEN_SECRET=...
+MUX_SIGNING_KEY=...
+MUX_PRIVATE_KEY=...
+MUX_WEBHOOK_SECRET=...
+NEXT_PUBLIC_MUX_ENV_KEY=...          # optional, Mux Data analytics
 ```
 
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` is accepted as a fallback for the publishable key.
@@ -46,11 +55,11 @@ again. Each file ends with a `select` that shows what it created.
 | 7 | `0007_categories.sql` | `public.categories` + the 10 sector seeds, migrates `videos.category` to the new slugs, adds `width/height/duration_seconds/aspect` |
 | 8 | `0008_listings.sql` | `listings`, `listing_contacts`, `listing_photos`, the private `listing-verification` bucket, `admin_review_listing()` |
 | 9 | `0009_upload_verification.sql` | `profiles.verification_exempted`, video review columns, `admin_review_video()`, `admin_set_verification_exemption()` |
-| 10 | `0010_paywall_access.sql` | `can_access_video()` + the access-aware storage read policy |
-| 11 | `0011_views.sql` | `video_views` ledger, `record_video_view()`, `creator_view_counts()` |
+| 11 | `0011_views.sql` | `video_views` ledger, `can_access_video_by_id()`, `record_video_view()`, `creator_view_counts()` |
 | 12 | `0012_wallet.sql` | `wallets`, `wallet_transactions`, `withdrawal_requests`, `request_withdrawal()`, `run_monthly_payouts()` |
 | 13 | `0013_live.sql` | `live_streams`, `live_chat_messages`, `live_gifts`, `gift_deposits`, the live-day rule, `send_live_gift()` |
 | 14 | `0014_rls_role_scope.sql` | scopes the legacy 0003 policies to `authenticated` (fixes the `is_admin()` 42501 error) |
+| 15 | `0015_mux.sql` | Mux columns on `videos`, nullable `video_path`, id-based access check, Mux-aware view recording |
 
 ### Applying them without the SQL editor
 
@@ -101,19 +110,44 @@ is used as the fallback (unknown slugs fail closed as **paid**).
 | `creator` | + Studio: upload, live studio, my content, my profiles, analytics, wallet; watches own uploads free |
 | `admin` | + `/dashboard/admin`: users, video review, profile verification, live requests, deposits, wallets, settings |
 
+## Video hosting (Mux)
+
+New uploads use **Mux direct uploads**:
+1. The browser reads the file's dimensions/duration and uploads the cover
+   image to the public `thumbnails` bucket.
+2. `POST /api/videos` creates the `videos` row and a Mux direct upload URL,
+   bound together by `mux_upload_id` and the asset `passthrough` (the row id).
+3. The browser `PUT`s the file straight to Mux — it never passes through the
+   Next.js server.
+4. Mux calls `POST /api/webhooks/mux` when the asset is ready. The webhook is
+   signature-verified and stores `mux_asset_id`, `mux_playback_id`, duration,
+   dimensions and aspect on the row.
+
+Playback stays behind the app's paywall. `/api/videos/[id]/stream` performs the
+same admin/owner/free-sector/subscription check as before, then returns a
+**signed** Mux playback ID plus short-lived playback, thumbnail and storyboard
+tokens. `VideoPlayer` renders those with `@mux/mux-player-react`. Deleting a
+video also deletes its Mux asset.
+
+Set the webhook URL in the Mux dashboard to:
+
+```
+https://<your-domain>/api/webhooks/mux
+```
+
 ## Uploads and verification
 
 - **Upload** (creators): `UploadWidget` reads the video metadata, enforces the
-  9:16 and duration rules of the sector, uploads the file to the private
-  `videos` bucket and a thumbnail to the public `thumbnails` bucket.
-- Every upload starts as `pending_review`. An admin approves or rejects it
-  from `/dashboard/admin/videos`.
+  9:16 and duration rules of the sector, then uploads to Mux and a thumbnail to
+  the public `thumbnails` bucket.
+- Every upload starts as `pending_review` unless the creator is exempt. An
+  admin approves or rejects it from `/dashboard/admin/videos`.
 - A creator can be **exempted** from review (`profiles.verification_exempted`)
   from `/dashboard/admin` → the user list. The column is never writable by the
   creator; only `admin_set_verification_exemption()` changes it.
 - Locked playback is enforced twice: app-side (`isVideoUnlocked` in
-  `src/lib/videos.ts`) and at file level (`can_access_video()` backs the
-  storage policy, and `/api/videos/[id]/stream` issues the signed URL).
+  `src/lib/videos.ts` and the id-based `can_access_video_by_id()`), and at the
+  playback route, which issues signed Mux tokens only after that check.
 
 ## Listings and verification
 
@@ -168,7 +202,8 @@ src/
 │   │   ├── gifts/      gift top-ups
 │   │   ├── listings/   profile create/update, photo upload
 │   │   ├── live/       request, start, end, chat, gift
-│   │   ├── videos/     delete, signed-URL streaming, view recording
+│   │   ├── videos/     Mux upload creation, delete, playback, view recording
+│   │   ├── webhooks/   Mux asset webhook
 │   │   └── wallet/     withdrawals
 │   ├── dashboard/      app shell + the sector, studio, admin and account pages
 │   └── login/
@@ -188,11 +223,12 @@ src/
 │   ├── categories.ts   the ten sectors, access map, upload validation
 │   ├── live.ts         live types and queries
 │   ├── listings.ts     listing queries, photo URLs, contact visibility
+│   ├── mux.ts          Mux client, direct uploads, playback tokens, webhooks
 │   ├── providers/      live.ts — the LiveProvider interface
 │   ├── roles.ts        roles and navigation
 │   ├── videos.ts       video types, padlock logic, status labels
 │   ├── wallet.ts       wallet, transactions, withdrawals
-│   └── supabase/       env + server client + browser client
+│   └── supabase/       env + server client + browser client + service-role client
 └── proxy.ts            session check for every route
 ```
 

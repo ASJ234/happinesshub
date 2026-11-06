@@ -41,7 +41,7 @@ async function readVideo(file: File): Promise<VideoMeta> {
     video.src = url;
 
     await new Promise<void>((resolve, reject) => {
-      video.onloadeddata = () => resolve();
+      video.onloadedmetadata = () => resolve();
       video.onerror = () => reject(new Error("could not load video"));
       setTimeout(() => reject(new Error("timeout")), 10_000);
     });
@@ -147,31 +147,9 @@ export function UploadWidget() {
       return;
     }
 
-    // Creators can be exempted from verification by an admin. Everyone else
-    // waits for the video to be reviewed before it goes live.
-    const { data: profile } = await supabase
-      .from("profiles")
-      .select("verification_exempted")
-      .eq("id", user.id)
-      .maybeSingle();
-    const exempt = profile?.verification_exempted === true;
-    const status = exempt ? "published" : "pending_review";
-
-    const extMatch = file.name.match(/\.([a-z0-9]+)$/i);
-    const ext = extMatch ? `.${extMatch[1].toLowerCase()}` : ".mp4";
-    const videoPath = `${user.id}/${crypto.randomUUID()}${ext}`;
+    // Cover images stay in the public thumbnails bucket so locked cards never
+    // need a playback token.
     let thumbnailPath: string | null = null;
-
-    const { error: uploadError } = await supabase.storage
-      .from("videos")
-      .upload(videoPath, file, { contentType: file.type, upsert: false });
-
-    if (uploadError) {
-      setUploading(false);
-      setError(`Upload failed: ${uploadError.message}`);
-      return;
-    }
-
     if (meta.thumbnail) {
       thumbnailPath = `${user.id}/${crypto.randomUUID()}.jpg`;
       const { error: thumbError } = await supabase.storage
@@ -180,41 +158,77 @@ export function UploadWidget() {
       if (thumbError) thumbnailPath = null;
     }
 
-    const { error: insertError } = await supabase.from("videos").insert({
-      creator_id: user.id,
-      title: title.trim(),
-      description: description.trim() || null,
-      category,
-      video_path: videoPath,
-      thumbnail_path: thumbnailPath,
-      status,
-      width: meta.width,
-      height: meta.height,
-      duration_seconds: meta.durationSeconds,
-      aspect: meta.width && meta.height
-        ? `${meta.width}:${meta.height}`
-        : null,
-    });
+    let pendingVideoId: string | null = null;
+    try {
+      const response = await fetch("/api/videos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim(),
+          description: description.trim() || null,
+          category,
+          thumbnail_path: thumbnailPath,
+          width: meta.width,
+          height: meta.height,
+          durationSeconds: meta.durationSeconds,
+          aspect:
+            meta.width && meta.height
+              ? `${meta.width}:${meta.height}`
+              : null,
+        }),
+      });
 
-    if (insertError) {
-      // Clean up the files we just stored so no orphans are left behind.
-      await supabase.storage.from("videos").remove([videoPath]);
-      if (thumbnailPath) {
-        await supabase.storage.from("thumbnails").remove([thumbnailPath]);
+      const created = await response.json().catch(() => null);
+      if (created?.videoId) pendingVideoId = created.videoId as string;
+
+      if (!response.ok || !created?.uploadUrl || !created?.videoId) {
+        if (pendingVideoId) {
+          // DELETE also removes the thumbnail from storage.
+          await fetch(`/api/videos/${pendingVideoId}`, { method: "DELETE" });
+        } else if (thumbnailPath) {
+          // Row was never created; clean up the orphaned thumbnail manually.
+          await supabase.storage.from("thumbnails").remove([thumbnailPath]);
+        }
+        setUploading(false);
+        setError(created?.error ?? "Could not start the upload.");
+        return;
+      }
+
+      const uploadResponse = await fetch(created.uploadUrl as string, {
+        method: "PUT",
+        headers: {
+          "Content-Type": file.type || "application/octet-stream",
+        },
+        body: file,
+      });
+
+      if (!uploadResponse.ok) {
+        await fetch(`/api/videos/${created.videoId}`, { method: "DELETE" });
+        setUploading(false);
+        setError(`Upload to Mux failed (${uploadResponse.status}).`);
+        return;
+      }
+
+      pendingVideoId = null;
+      const isPublished = created.status === "published";
+      setUploading(false);
+      setPendingReview(!isPublished);
+      setDone(true);
+      setFile(null);
+      setTitle("");
+      setDescription("");
+      setCategory("explore");
+      if (inputRef.current) inputRef.current.value = "";
+      router.refresh();
+    } catch {
+      if (pendingVideoId) {
+        await fetch(`/api/videos/${pendingVideoId}`, {
+          method: "DELETE",
+        }).catch(() => undefined);
       }
       setUploading(false);
-      setError(`Could not save video: ${insertError.message}`);
-      return;
+      setError("Could not reach the video host. Please try again.");
     }
-
-    setUploading(false);
-    setPendingReview(!exempt);
-    setDone(true);
-    setFile(null);
-    setTitle("");
-    setDescription("");
-    if (inputRef.current) inputRef.current.value = "";
-    router.refresh();
   }
 
   if (done) {
@@ -224,12 +238,12 @@ export function UploadWidget() {
           <CheckCircle2 size={24} />
         </div>
         <h2 className="text-lg font-semibold mb-1">
-          {pendingReview ? "Video submitted for review" : "Video published"}
+          {pendingReview ? "Video submitted for review" : "Video uploaded"}
         </h2>
         <p className="text-sm text-muted mb-6">
           {pendingReview
             ? "An admin will review your video before it appears in the feeds. You can watch it from My Content in the meantime."
-            : "Your video is live. You can watch it for free — others need an active subscription to unlock it."}
+            : "Mux is processing your video. It will be playable as soon as encoding finishes."}
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link

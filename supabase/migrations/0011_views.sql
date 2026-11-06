@@ -38,6 +38,35 @@ create policy "read own video views"
 revoke insert, update, delete on public.video_views from anon, authenticated;
 grant select on public.video_views to authenticated;
 
+-- Access check by video id. Mirrors public.isVideoUnlocked in the app.
+create or replace function public.can_access_video_by_id(p_video_id uuid)
+returns boolean
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select exists (
+    select 1
+      from public.videos v
+     where v.id = p_video_id
+       and (
+         v.status = 'published'
+         or v.creator_id = auth.uid()
+         or public.is_admin()
+       )
+       and (
+         v.creator_id = auth.uid()
+         or public.is_admin()
+         or public.category_access(v.category) = 'free'
+         or public.has_active_subscription()
+       )
+  );
+$$;
+
+revoke execute on function public.can_access_video_by_id(uuid) from public, anon;
+grant execute on function public.can_access_video_by_id(uuid) to authenticated;
+
 -- Records a view and reports whether it moved the counter.
 create or replace function public.record_video_view(p_video_id uuid)
 returns boolean
@@ -72,7 +101,7 @@ begin
   -- A view only counts when the viewer can actually watch the video. Without
   -- this, a signed-in non-subscriber could call the RPC directly and inflate
   -- the ledger that drives payouts.
-  if not public.can_access_video(v_video.video_path) then
+  if not public.can_access_video_by_id(v_video.id) then
     return false;
   end if;
 

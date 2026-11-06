@@ -19,7 +19,6 @@ export interface VideoRow {
   title: string;
   description: string | null;
   category: string;
-  video_path: string;
   thumbnail_path: string | null;
   views: number;
   status: VideoStatus;
@@ -27,6 +26,11 @@ export interface VideoRow {
   height: number | null;
   duration_seconds: number | null;
   aspect: string | null;
+  mux_asset_id: string | null;
+  mux_playback_id: string | null;
+  mux_upload_id: string | null;
+  mux_status: "waiting" | "preparing" | "ready" | "errored" | "cancelled" | null;
+  mux_error: string | null;
   created_at: string;
   creator: { username: string; display_name: string | null } | null;
 }
