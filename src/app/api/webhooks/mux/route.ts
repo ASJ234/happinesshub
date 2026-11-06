@@ -189,6 +189,40 @@ export async function POST(request: Request) {
         break;
       }
 
+      // -----------------------------------------------------------------------
+      // Live stream events
+      // -----------------------------------------------------------------------
+
+      case "video.live_stream.active":
+      case "video.live_stream.idle":
+      case "video.live_stream.disconnected": {
+        const muxLiveStreamId = readString(data.id);
+        if (!muxLiveStreamId) break;
+
+        const { data: liveStream } = await admin
+          .from("live_streams")
+          .select("id")
+          .eq("mux_live_stream_id", muxLiveStreamId)
+          .eq("status", "live")
+          .maybeSingle();
+
+        if (!liveStream) break;
+
+        // Auto-end the DB row when the RTMP connection goes permanently idle
+        // (reconnect window expired) or the encoder disconnects.
+        if (
+          event.type === "video.live_stream.idle" ||
+          event.type === "video.live_stream.disconnected"
+        ) {
+          await admin
+            .from("live_streams")
+            .update({ status: "ended", ended_at: new Date().toISOString() })
+            .eq("id", liveStream.id)
+            .eq("status", "live");
+        }
+        break;
+      }
+
       default:
         break;
     }

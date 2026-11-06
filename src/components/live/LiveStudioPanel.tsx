@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CalendarClock, Play, Square } from "lucide-react";
+import { CalendarClock, Check, Copy, Play, Square } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import {
   LIVE_ALLOWED_WEEKDAYS,
@@ -17,8 +17,46 @@ interface LiveStudioPanelProps {
   todayLabel: string;
 }
 
+interface StreamCredentials {
+  ingestUrl: string;
+  streamKey: string;
+}
+
 const inputClass =
   "w-full bg-surface-elevated border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50";
+
+function CopyField({ label, value }: { label: string; value: string }) {
+  const [copied, setCopied] = useState(false);
+
+  function copy() {
+    navigator.clipboard.writeText(value).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div>
+      <p className="text-xs text-muted mb-1">{label}</p>
+      <div className="flex items-center gap-2">
+        <code className="flex-1 bg-surface-elevated border border-border rounded px-3 py-2 text-xs font-mono truncate">
+          {value}
+        </code>
+        <button
+          onClick={copy}
+          className="shrink-0 p-2 rounded border border-border hover:border-primary/50 transition-colors"
+          title="Copy"
+        >
+          {copied ? (
+            <Check size={13} className="text-green-400" />
+          ) : (
+            <Copy size={13} />
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
 
 export function LiveStudioPanel({
   streams,
@@ -32,6 +70,7 @@ export function LiveStudioPanel({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [credentials, setCredentials] = useState<StreamCredentials | null>(null);
 
   async function request() {
     setBusy(true);
@@ -80,7 +119,15 @@ export function LiveStudioPanel({
       return;
     }
 
-    setNotice(action === "start" ? "You are live." : "The stream has ended.");
+    if (action === "start") {
+      setNotice("You are live.");
+      if (body?.ingestUrl && body?.streamKey) {
+        setCredentials({ ingestUrl: body.ingestUrl, streamKey: body.streamKey });
+      }
+    } else {
+      setNotice("The stream has ended.");
+      setCredentials(null);
+    }
     router.refresh();
   }
 
@@ -164,6 +211,19 @@ export function LiveStudioPanel({
           {busy ? "Sending..." : "Send request"}
         </button>
       </div>
+
+      {credentials && (
+        <div className="bg-surface border border-green-500/30 rounded-2xl p-5 space-y-3">
+          <div>
+            <h2 className="font-semibold text-green-400">Broadcast credentials</h2>
+            <p className="text-xs text-muted mt-0.5">
+              Paste these into OBS, Streamlabs or any RTMP encoder to go live.
+            </p>
+          </div>
+          <CopyField label="RTMP server" value={credentials.ingestUrl} />
+          <CopyField label="Stream key" value={credentials.streamKey} />
+        </div>
+      )}
 
       <div className="bg-surface border border-border rounded-2xl p-5 space-y-3">
         <h2 className="font-semibold">My broadcasts</h2>

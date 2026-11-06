@@ -3,34 +3,40 @@
  *
  * The live workflow (request -> admin approval -> go live -> chat -> gifts ->
  * end) is implemented end to end in the app and does not depend on a media
- * vendor. `LocalProvider` runs the workflow with the Supabase database and
- * Realtime chat only, which keeps the product usable while the ingest and
- * playback pieces are still being negotiated.
- *
- * To plug in a real vendor (e.g. Mux, LiveKit, StreamYard) implement
- * `LiveProvider` and switch `getLiveProvider()` over to it. Nothing else in
- * the app needs to change: the pages only ever talk to this interface.
+ * vendor. When MUX_TOKEN_ID and MUX_TOKEN_SECRET are set, `getLiveProvider()`
+ * returns a MuxProvider that creates a real RTMPS ingest point and a signed
+ * playback ID. Without those env vars it falls back to LocalProvider, which
+ * runs the full workflow without any video ingest or playback.
  */
 
+import {
+  completeMuxLiveStream,
+  createMuxLiveStream,
+  isMuxApiConfigured,
+  MUX_RTMPS_INGEST_URL,
+} from "@/lib/mux";
+
 export interface LiveSession {
-  /** The row id in public.live_streams. */
   streamId: string;
   provider: string;
-  /** Where the viewer pulls the media from. Null when the provider has no playback. */
+  /** Unsigned Mux playback ID. Viewers exchange this for a signed token. */
+  playbackId: string | null;
+  /** Legacy field kept for interface compatibility — null for Mux. */
   playbackUrl: string | null;
-  /** Where the creator pushes the media to. Null when the provider has no ingest. */
+  /** RTMP(S) ingest server URL. Null when no video ingest is available. */
   ingestUrl: string | null;
-  /** Realtime channel used for the chat. */
+  /** RTMP stream key shown to the creator. Null for the local provider. */
+  streamKey: string | null;
+  /** Mux live stream resource ID, needed to end/delete the stream. */
+  muxLiveStreamId: string | null;
   chatChannel: string;
   createdAt: string;
 }
 
 export interface LiveProvider {
   readonly name: string;
-  /** Prepares a session for a stream the admin already approved. */
   createSession(streamId: string, title: string): Promise<LiveSession>;
-  /** Releases the session when the stream ends. */
-  endSession(session: LiveSession): Promise<void>;
+  endSession(muxLiveStreamId: string | null): Promise<void>;
 }
 
 class LocalProvider implements LiveProvider {
@@ -40,21 +46,51 @@ class LocalProvider implements LiveProvider {
     return {
       streamId,
       provider: this.name,
+      playbackId: null,
       playbackUrl: null,
       ingestUrl: null,
+      streamKey: null,
+      muxLiveStreamId: null,
       chatChannel: `live:${streamId}`,
       createdAt: new Date().toISOString(),
     };
   }
 
   async endSession(): Promise<void> {
-    // Nothing to release: the local provider has no external resources.
+    // Nothing to release for the local provider.
+  }
+}
+
+class MuxProvider implements LiveProvider {
+  readonly name = "mux";
+
+  async createSession(streamId: string, title: string): Promise<LiveSession> {
+    const result = await createMuxLiveStream({ streamId, title });
+    return {
+      streamId,
+      provider: this.name,
+      playbackId: result.playbackId,
+      playbackUrl: null,
+      ingestUrl: MUX_RTMPS_INGEST_URL,
+      streamKey: result.streamKey,
+      muxLiveStreamId: result.muxLiveStreamId,
+      chatChannel: `live:${streamId}`,
+      createdAt: new Date().toISOString(),
+    };
+  }
+
+  async endSession(muxLiveStreamId: string | null): Promise<void> {
+    if (muxLiveStreamId) {
+      await completeMuxLiveStream(muxLiveStreamId);
+    }
   }
 }
 
 let provider: LiveProvider | null = null;
 
 export function getLiveProvider(): LiveProvider {
-  if (!provider) provider = new LocalProvider();
+  if (!provider) {
+    provider = isMuxApiConfigured() ? new MuxProvider() : new LocalProvider();
+  }
   return provider;
 }

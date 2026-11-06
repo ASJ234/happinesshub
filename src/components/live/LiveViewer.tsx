@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Gift, Radio } from "lucide-react";
+import { Gift, Loader2, Radio } from "lucide-react";
+import MuxPlayer from "@mux/mux-player-react";
 import { createClient } from "@/lib/supabase/client";
 import { LiveChat } from "@/components/live/LiveChat";
 import type { LiveChatMessage, LiveGift, LiveStreamRow } from "@/lib/live";
@@ -21,6 +22,13 @@ interface GiftPing {
   sender: string;
 }
 
+type PlaybackState =
+  | { kind: "idle" }
+  | { kind: "loading" }
+  | { kind: "ready"; playbackId: string; token: string }
+  | { kind: "locked" }
+  | { kind: "error"; message: string };
+
 export function LiveViewer({
   stream,
   gifts,
@@ -32,6 +40,39 @@ export function LiveViewer({
   const [notice, setNotice] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [balance, setBalance] = useState(giftBalance);
+  const [playback, setPlayback] = useState<PlaybackState>(
+    stream.status === "live" && stream.mux_playback_id
+      ? { kind: "loading" }
+      : { kind: "idle" }
+  );
+
+  // Fetch a signed playback token when the stream is live and Mux is involved.
+  useEffect(() => {
+    if (stream.status !== "live" || !stream.mux_playback_id) return;
+    let cancelled = false;
+
+    setPlayback({ kind: "loading" });
+
+    fetch(`/api/live/${stream.id}/playback`)
+      .then(async (res) => {
+        const body = await res.json().catch(() => null);
+        if (cancelled) return;
+        if (res.status === 403 && body?.locked) {
+          setPlayback({ kind: "locked" });
+        } else if (!res.ok) {
+          setPlayback({ kind: "error", message: body?.error ?? "Could not start playback" });
+        } else {
+          setPlayback({ kind: "ready", playbackId: body.playbackId, token: body.token });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setPlayback({ kind: "error", message: "Could not reach the streaming server" });
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, [stream.id, stream.status, stream.mux_playback_id]);
 
   useEffect(() => {
     const supabase = createClient();
@@ -46,31 +87,19 @@ export function LiveViewer({
           filter: `stream_id=eq.${stream.id}`,
         },
         () => {
-          // The name and emoji are resolved on the next server render; the
-          // overlay only needs to know that a gift arrived.
           setPings((prev) => [
             ...prev.slice(-4),
-            {
-              id: Date.now(),
-              giftName: "Gift",
-              emoji: "🎁",
-              sender: "Someone",
-            },
+            { id: Date.now(), giftName: "Gift", emoji: "🎁", sender: "Someone" },
           ]);
           setTimeout(
-            () =>
-              setPings((prev) =>
-                prev.filter((ping) => ping.id !== Date.now())
-              ),
+            () => setPings((prev) => prev.filter((ping) => ping.id !== Date.now())),
             4000
           );
         }
       )
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => { supabase.removeChannel(channel); };
   }, [stream.id]);
 
   async function sendGift(gift: LiveGift) {
@@ -95,37 +124,83 @@ export function LiveViewer({
     setBalance((value) => value - gift.price);
   }
 
+  function renderPlayer() {
+    if (stream.status !== "live") {
+      return (
+        <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+          <Radio size={48} className="text-white/30 mb-4" />
+          <p className="text-white/70 text-sm">
+            This stream is {stream.status}. Check back when it goes live.
+          </p>
+        </div>
+      );
+    }
+
+    switch (playback.kind) {
+      case "loading":
+        return (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <Loader2 size={32} className="text-white/40 animate-spin" />
+          </div>
+        );
+
+      case "ready":
+        return (
+          <MuxPlayer
+            playbackId={playback.playbackId}
+            tokens={{ playback: playback.token }}
+            streamType="live"
+            autoPlay
+            playsInline
+            className="absolute inset-0 w-full h-full"
+          />
+        );
+
+      case "locked":
+        return (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+            <Radio size={48} className="text-white/30 mb-4" />
+            <p className="text-white font-semibold">Subscription required</p>
+            <p className="text-white/60 text-sm mt-1">
+              Unlock live streams and all videos with an active subscription.
+            </p>
+          </div>
+        );
+
+      case "error":
+        return (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+            <Radio size={48} className="text-white/30 mb-4" />
+            <p className="text-white/70 text-sm">{playback.message}</p>
+          </div>
+        );
+
+      default:
+        return (
+          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
+            <Radio size={48} className="text-white/30 mb-4" />
+            <p className="text-white font-semibold">{stream.title}</p>
+            <p className="text-white/60 text-sm mt-1">Starting soon…</p>
+          </div>
+        );
+    }
+  }
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       <div className="lg:col-span-2 space-y-4">
         <div className="relative aspect-video bg-black rounded-2xl overflow-hidden border border-border">
-          <div className="absolute inset-0 flex flex-col items-center justify-center text-center px-6">
-            <Radio size={48} className="text-red-500 mb-4" />
-            {stream.status === "live" ? (
-              <>
-                <p className="text-white font-semibold text-lg">
-                  {stream.title}
-                </p>
-                <p className="text-white/60 text-sm mt-1">
-                  The video feed is handled by the streaming provider
-                </p>
-              </>
-            ) : (
-              <p className="text-white/70 text-sm">
-                This stream is {stream.status}. Check back when it is live.
-              </p>
-            )}
-          </div>
+          {renderPlayer()}
 
           {stream.status === "live" && (
-            <span className="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1.5">
+            <span className="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded flex items-center gap-1.5 z-10">
               <span className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
               LIVE
             </span>
           )}
 
           {pings.length > 0 && (
-            <div className="absolute top-3 right-3 space-y-1">
+            <div className="absolute top-3 right-3 space-y-1 z-10">
               {pings.map((ping) => (
                 <div
                   key={ping.id}

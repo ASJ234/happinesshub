@@ -10,6 +10,7 @@ export interface LiveStreamRow {
   status: LiveStatus;
   provider: string;
   provider_session_id: string | null;
+  mux_playback_id: string | null;
   scheduled_for: string | null;
   started_at: string | null;
   ended_at: string | null;
@@ -52,7 +53,7 @@ export async function fetchLiveStreams(
   let query = supabase
     .from("live_streams")
     .select(
-      "id, creator_id, title, description, status, provider, provider_session_id, scheduled_for, started_at, ended_at, viewers, gift_total, review_note, created_at, creator:creator_id(username, display_name)"
+      "id, creator_id, title, description, status, provider, provider_session_id, mux_playback_id, scheduled_for, started_at, ended_at, viewers, gift_total, review_note, created_at, creator:creator_id(username, display_name)"
     )
     .order("created_at", { ascending: false })
     .limit(limit);
