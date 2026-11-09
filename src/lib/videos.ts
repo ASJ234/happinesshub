@@ -137,6 +137,64 @@ export async function fetchVideos(
   return (data ?? []) as VideoRow[];
 }
 
+export interface CreatorTotals {
+  videos: number;
+  views: number;
+}
+
+/** Totals across a creator's published videos. */
+export async function fetchCreatorTotals(
+  supabase: SupabaseClient,
+  creatorId: string
+): Promise<CreatorTotals> {
+  const { data, error } = await supabase
+    .from("videos")
+    .select("views")
+    .eq("creator_id", creatorId)
+    .eq("status", "published");
+
+  if (error) {
+    console.warn(`[videos] creator totals failed: ${error.message}`);
+    return { videos: 0, views: 0 };
+  }
+
+  return {
+    videos: data.length,
+    views: data.reduce((sum, row) => sum + Number(row.views), 0),
+  };
+}
+
+export interface VideoViewCount {
+  video_id: string;
+  title: string;
+  views: number;
+}
+
+/** A creator's videos by views over the last `days` days, most viewed first. */
+export async function fetchRecentViewCounts(
+  supabase: SupabaseClient,
+  creatorId: string,
+  days: number
+): Promise<VideoViewCount[]> {
+  const today = new Date();
+  const from = new Date(today.getTime() - (days - 1) * 86_400_000);
+  const { data, error } = await supabase.rpc("creator_view_counts", {
+    p_creator_id: creatorId,
+    p_from: from.toISOString().slice(0, 10),
+    p_to: today.toISOString().slice(0, 10),
+  });
+
+  if (error) {
+    console.warn(`[videos] view counts failed: ${error.message}`);
+    return [];
+  }
+
+  return ((data ?? []) as VideoViewCount[]).map((row) => ({
+    ...row,
+    views: Number(row.views),
+  }));
+}
+
 export function thumbnailUrl(
   supabase: SupabaseClient,
   path: string | null

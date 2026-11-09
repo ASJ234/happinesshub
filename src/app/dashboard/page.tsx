@@ -20,8 +20,8 @@ export default async function DashboardPage() {
           {isSignedIn
             ? isCreator
               ? "Manage your content, go live, and grow your audience."
-              : "Discover videos, live streams, and trending shorts."
-            : "Browse live streams and trending shorts. Sign in to unlock exclusive content."}
+              : "Discover videos, live streams, and the latest clips."
+            : "Sign in to watch videos, live streams, and clips."}
         </p>
       </div>
 
@@ -39,8 +39,8 @@ export default async function DashboardPage() {
           <h2 className="text-lg font-semibold mb-2">Explore HAPPYPORN.COM</h2>
           <p className="text-muted text-sm max-w-md mx-auto">
             {isSignedIn
-              ? "Browse live streams and trending shorts below. Upgrade to a Creator account to upload videos and access studio tools."
-              : "Browse live streams and trending shorts below. Sign in or create a free account to watch Live Sex, Quickies, and more."}
+              ? "Browse live streams and the latest clips below. Upgrade to a Creator account to upload videos and access studio tools."
+              : "Sign in or create a free account to watch Live Sex, Quickies, and more."}
           </p>
         </div>
       )}

@@ -1,11 +1,19 @@
 import { requireRole } from "@/lib/auth";
-import { LayoutDashboard } from "lucide-react";
+import { Coins, Eye, LayoutDashboard, Wallet } from "lucide-react";
+import { createClient } from "@/lib/supabase/server";
+import { fetchCreatorTotals, formatViews } from "@/lib/videos";
+import { fetchWallet, money } from "@/lib/wallet";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
-import { creatorStats } from "@/lib/mock-data";
 
 export default async function CreatorDashboardPage() {
-  await requireRole("creator", "admin");
+  const user = await requireRole("creator", "admin");
+  const supabase = await createClient();
+
+  const [wallet, totals] = await Promise.all([
+    fetchWallet(supabase, user.id),
+    fetchCreatorTotals(supabase, user.id),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -16,14 +24,13 @@ export default async function CreatorDashboardPage() {
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-        {creatorStats.map((stat) => (
-          <StatCard
-            key={stat.label}
-            label={stat.label}
-            value={stat.value}
-            icon={stat.icon}
-          />
-        ))}
+        <StatCard label="Wallet Balance" value={money(wallet.balance)} icon={Wallet} />
+        <StatCard
+          label="Lifetime Earnings"
+          value={money(wallet.lifetimeEarnings)}
+          icon={Coins}
+        />
+        <StatCard label="Total Views" value={formatViews(totals.views)} icon={Eye} />
       </div>
     </div>
   );
