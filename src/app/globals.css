@@ -82,3 +82,23 @@ body {
 .no-scrollbar::-webkit-scrollbar {
   display: none;
 }
+
+html:has(dialog.mobile-nav[open]) {
+  overflow: hidden;
+}
+
+dialog.mobile-nav[open] {
+  animation: mobile-nav-in 200ms ease-out;
+}
+
+@keyframes mobile-nav-in {
+  from {
+    transform: translateX(-100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  dialog.mobile-nav[open] {
+    animation: none;
+  }
+}
