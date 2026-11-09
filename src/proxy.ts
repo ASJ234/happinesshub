@@ -59,11 +59,13 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // getClaims() verifies the token's signature locally, so this runs without a
+  // network call on every request. Pages still confirm the session with
+  // getUser() through getCurrentUser().
+  const { data } = await supabase.auth.getClaims();
+  const isSignedIn = Boolean(data?.claims);
 
-  // getUser() may have refreshed or removed the session cookies on `response`.
+  // getClaims() may have refreshed or removed the session cookies on `response`.
   // A redirect is a new response, so those changes must be copied onto it.
   const redirectTo = (path: string) => {
     const redirect = NextResponse.redirect(new URL(path, request.url));
@@ -71,7 +73,7 @@ export async function proxy(request: NextRequest) {
     return redirect;
   };
 
-  if (!user) {
+  if (!isSignedIn) {
     if (isLandingPath(pathname)) {
       return response;
     }
