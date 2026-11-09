@@ -37,7 +37,8 @@ export function VideoPlayer({
   width,
   height,
 }: VideoPlayerProps) {
-  const isVertical = Boolean(width && height && height > width);
+  const ratio = width && height ? width / height : null;
+  const isVertical = ratio !== null && ratio < 1;
   const [embedUrl, setEmbedUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -125,7 +126,7 @@ export function VideoPlayer({
         onError={() => setPlayerScript("failed")}
       />
       <div
-        className={`relative w-full bg-black rounded-xl border border-border overflow-hidden ${
+        className={`relative w-full bg-black rounded-xl border border-border overflow-hidden [container-type:size] ${
           isVertical ? "h-[70vh]" : "aspect-video max-h-[70vh]"
         }`}
       >
@@ -139,12 +140,19 @@ export function VideoPlayer({
             referrerPolicy="strict-origin-when-cross-origin"
             // The site is color-scheme: dark. A light-scheme embed in a dark
             // page gets an opaque white canvas, so the frame has to match it.
-            className={`[color-scheme:light] absolute ${
-              isVertical
-                ? "inset-y-0 left-1/2 -translate-x-1/2 h-full max-w-full"
-                : "inset-0 w-full h-full"
+            className={`[color-scheme:light] absolute inset-0 m-auto ${
+              ratio === null ? "w-full h-full" : ""
             }`}
-            style={isVertical ? { aspectRatio: `${width} / ${height}` } : undefined}
+            // Largest frame of the video's own shape that fits the box, so
+            // every video shows whole, centred on the black background.
+            style={
+              ratio === null
+                ? undefined
+                : {
+                    width: `min(100cqw, calc(100cqh * ${ratio}))`,
+                    aspectRatio: String(ratio),
+                  }
+            }
           />
         )}
       </div>
