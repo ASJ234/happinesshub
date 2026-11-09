@@ -21,7 +21,7 @@ interface VideoMeta {
 
 /**
  * Reads the dimensions and duration of the file and grabs a frame for the
- * thumbnail. The metadata is what the 9:16 rule is checked against.
+ * thumbnail. The duration is what the category limits are checked against.
  */
 async function readVideo(file: File): Promise<VideoMeta> {
   const meta: VideoMeta = {
@@ -372,8 +372,8 @@ export function UploadWidget() {
             {category === "appetizers" || category === "quickies" ? (
               <p className="text-[11px] text-muted mt-1.5">
                 {category === "quickies"
-                  ? "Vertical (9:16) and 2 minutes or shorter."
-                  : "Vertical (9:16)."}
+                  ? "2 minutes or shorter."
+                  : "5 minutes or shorter."}
               </p>
             ) : null}
           </div>

@@ -88,11 +88,7 @@ export async function POST(request: Request) {
         ? `${width}:${height}`
         : null;
 
-  const problem = validateUploadForCategory(category, {
-    width,
-    height,
-    durationSeconds,
-  });
+  const problem = validateUploadForCategory(category, { durationSeconds });
   if (problem) {
     return NextResponse.json({ error: problem }, { status: 400 });
   }
