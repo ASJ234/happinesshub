@@ -110,8 +110,9 @@ export async function POST(request: Request) {
     .eq("id", user.id)
     .maybeSingle();
 
-  const exempt = profile?.verification_exempted === true;
-  const status = exempt ? "published" : "pending_review";
+  const skipsReview =
+    user.role === "admin" || profile?.verification_exempted === true;
+  const status = skipsReview ? "published" : "pending_review";
 
   const admin = createAdminClient();
   const { data: video, error: insertError } = await admin
