@@ -19,6 +19,7 @@ interface VideoGridProps {
   search?: string;
   publishedOnly?: boolean;
   limit?: number;
+  excludeCategories?: readonly string[];
   emptyMessage?: string;
 }
 
@@ -28,6 +29,7 @@ export async function VideoGrid({
   search,
   publishedOnly = true,
   limit,
+  excludeCategories,
   emptyMessage = "No videos here yet. Check back soon.",
 }: VideoGridProps) {
   const user = await getCurrentUser();
@@ -35,7 +37,14 @@ export async function VideoGrid({
 
   const supabase = await createClient();
   const [videos, subscribed, accessMap] = await Promise.all([
-    fetchVideos(supabase, { category, creatorId, search, publishedOnly, limit }),
+    fetchVideos(supabase, {
+      category,
+      creatorId,
+      search,
+      publishedOnly,
+      limit,
+      excludeCategories,
+    }),
     hasActiveSubscription(supabase, user.id),
     fetchCategoryAccess(supabase),
   ]);
