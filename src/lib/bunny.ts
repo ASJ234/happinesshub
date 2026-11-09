@@ -24,6 +24,13 @@ export const BunnyWebhookStatus = {
   UploadFailed: 8,
 } as const;
 
+/** Status codes on the video API. */
+export const BunnyVideoStatus = {
+  Finished: 4,
+  Error: 5,
+  UploadFailed: 6,
+} as const;
+
 export function isBunnyUploadConfigured(): boolean {
   return Boolean(
     process.env.BUNNY_STREAM_LIBRARY_ID && process.env.BUNNY_STREAM_API_KEY
@@ -88,6 +95,7 @@ export async function createBunnyVideo(title: string): Promise<string> {
 }
 
 export interface BunnyVideoDetails {
+  status: number;
   length: number;
   width: number;
   height: number;
