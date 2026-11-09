@@ -5,6 +5,7 @@ import {
   isBunnyWebhookConfigured,
   verifyBunnyWebhook,
 } from "@/lib/bunny";
+import { markBunnyVideoReady } from "@/lib/bunny-sync";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
@@ -69,23 +70,7 @@ export async function POST(request: Request) {
 
   try {
     if (status === BunnyWebhookStatus.Finished) {
-      const details = await getBunnyVideo(guid);
-      const width = details.width || null;
-      const height = details.height || null;
-      const update: Record<string, string | number | null> = {
-        bunny_status: "ready",
-        bunny_error: null,
-        duration_seconds: details.length || null,
-        width,
-        height,
-        aspect: width && height ? `${width}:${height}` : null,
-      };
-
-      const { error } = await admin
-        .from("videos")
-        .update(update)
-        .eq("bunny_video_id", guid);
-      if (error) throw error;
+      await markBunnyVideoReady(admin, guid, await getBunnyVideo(guid));
     } else if (IN_PROGRESS.includes(status)) {
       const { error } = await unlessReady({
         bunny_status: "processing",

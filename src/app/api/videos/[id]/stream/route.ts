@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { fetchCategoryAccess } from "@/lib/categories";
 import { signBunnyEmbedUrl } from "@/lib/bunny";
+import { syncBunnyVideo } from "@/lib/bunny-sync";
 import { hasActiveSubscription, isVideoUnlocked } from "@/lib/videos";
 import { createClient } from "@/lib/supabase/server";
 
@@ -52,14 +53,27 @@ export async function GET(
     );
   }
 
-  if (video.bunny_status === "errored") {
+  let bunnyStatus: string | null = video.bunny_status;
+  if (
+    video.bunny_video_id &&
+    bunnyStatus !== "ready" &&
+    bunnyStatus !== "errored"
+  ) {
+    try {
+      bunnyStatus = (await syncBunnyVideo(video.bunny_video_id)) ?? bunnyStatus;
+    } catch (syncError) {
+      console.warn(`[stream] Bunny sync failed for ${id}: ${String(syncError)}`);
+    }
+  }
+
+  if (bunnyStatus === "errored") {
     return NextResponse.json(
       { error: video.bunny_error || "This video could not be processed" },
       { status: 422 }
     );
   }
 
-  if (video.bunny_video_id && video.bunny_status === "ready") {
+  if (video.bunny_video_id && bunnyStatus === "ready") {
     try {
       return NextResponse.json({
         embedUrl: signBunnyEmbedUrl(video.bunny_video_id),
