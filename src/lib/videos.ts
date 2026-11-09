@@ -103,11 +103,19 @@ interface FetchVideosOptions {
   search?: string;
   publishedOnly?: boolean;
   limit?: number;
+  excludeCategories?: readonly string[];
 }
 
 export async function fetchVideos(
   supabase: SupabaseClient,
-  { category, creatorId, search, publishedOnly = true, limit = 60 }: FetchVideosOptions = {}
+  {
+    category,
+    creatorId,
+    search,
+    publishedOnly = true,
+    limit = 60,
+    excludeCategories,
+  }: FetchVideosOptions = {}
 ): Promise<VideoRow[]> {
   let query = supabase
     .from("videos")
@@ -116,6 +124,9 @@ export async function fetchVideos(
     .limit(limit);
 
   if (category) query = query.eq("category", category);
+  if (excludeCategories?.length) {
+    query = query.not("category", "in", `(${excludeCategories.join(",")})`);
+  }
   if (creatorId) query = query.eq("creator_id", creatorId);
   if (publishedOnly) query = query.eq("status", "published");
   if (search) {
