@@ -25,15 +25,20 @@ Create `.env.local`:
 ```
 NEXT_PUBLIC_SUPABASE_URL=...
 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=...
-SUPABASE_SERVICE_ROLE_KEY=...        # server only: Mux uploads + webhook
+SUPABASE_SERVICE_ROLE_KEY=...        # server only: uploads + webhooks
 
-# Mux video hosting
+# Bunny Stream video hosting
+BUNNY_STREAM_LIBRARY_ID=...
+BUNNY_STREAM_API_KEY=...             # library API key: uploads
+BUNNY_STREAM_READ_ONLY_API_KEY=...   # library read-only key: webhook signature
+BUNNY_STREAM_TOKEN_KEY=...           # Security > Token authentication key
+
+# Mux live streaming
 MUX_TOKEN_ID=...
 MUX_TOKEN_SECRET=...
 MUX_SIGNING_KEY=...
 MUX_PRIVATE_KEY=...
 MUX_WEBHOOK_SECRET=...
-NEXT_PUBLIC_MUX_ENV_KEY=...          # optional, Mux Data analytics
 ```
 
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` is accepted as a fallback for the publishable key.
@@ -60,6 +65,8 @@ again. Each file ends with a `select` that shows what it created.
 | 13 | `0013_live.sql` | `live_streams`, `live_chat_messages`, `live_gifts`, `gift_deposits`, the live-day rule, `send_live_gift()` |
 | 14 | `0014_rls_role_scope.sql` | scopes the legacy 0003 policies to `authenticated` (fixes the `is_admin()` 42501 error) |
 | 15 | `0015_mux.sql` | Mux columns on `videos`, nullable `video_path`, id-based access check, Mux-aware view recording |
+| 17 | `0017_remove_leaks.sql` | removes the Leaks sector and any videos in it |
+| 18 | `0018_bunny.sql` | Bunny Stream columns on `videos` |
 
 ### Applying them without the SQL editor
 
@@ -74,16 +81,15 @@ back the whole file. It also accepts `DATABASE_URL` instead of a token.
 > `viewer` and a warning is logged. The same applies to every new table — the
 > admin panels show empty states instead of crashing.
 
-## The ten sectors
+## The nine sectors
 
-Six video sectors and four listing sectors. `public.categories` is the
+Five video sectors and four listing sectors. `public.categories` is the
 authority for which sectors are free; `src/lib/categories.ts` mirrors it and
 is used as the fallback (unknown slugs fail closed as **paid**).
 
 | Sector | Kind | Access | Rule |
 | --- | --- | --- | --- |
 | Picha | listing | free | photo galleries and picture collections |
-| Leaks | video | paid | the latest leaked videos |
 | Wardrobe | listing | free | merchants selling sex toys |
 | Exclusively Ugandan | video | paid | only Ugandan-made videos |
 | Appetizers | video | paid | 9:16, max 5 minutes |
@@ -110,24 +116,38 @@ is used as the fallback (unknown slugs fail closed as **paid**).
 | `creator` | + Studio: upload, live studio, my content, my profiles, analytics, wallet; watches own uploads free |
 | `admin` | + `/dashboard/admin`: users, video review, profile verification, live requests, deposits, wallets, settings |
 
-## Video hosting (Mux)
+## Video hosting (Bunny Stream)
 
-New uploads use **Mux direct uploads**:
+Regular videos are hosted on **Bunny Stream**. Mux is used for live streams only.
+
 1. The browser reads the file's dimensions/duration and uploads the cover
    image to the public `thumbnails` bucket.
-2. `POST /api/videos` creates the `videos` row and a Mux direct upload URL,
-   bound together by `mux_upload_id` and the asset `passthrough` (the row id).
-3. The browser `PUT`s the file straight to Mux — it never passes through the
-   Next.js server.
-4. Mux calls `POST /api/webhooks/mux` when the asset is ready. The webhook is
-   signature-verified and stores `mux_asset_id`, `mux_playback_id`, duration,
-   dimensions and aspect on the row.
+2. `POST /api/videos` creates the `videos` row and a Bunny video, stores its
+   `bunny_video_id`, and returns a signature valid for that one video.
+3. The browser uploads the file straight to Bunny over TUS, which resumes after
+   dropped connections. It never passes through the Next.js server.
+4. Bunny calls `POST /api/webhooks/bunny` as the video encodes. The webhook is
+   signature-verified and, when encoding finishes, stores `bunny_status`,
+   duration, dimensions and aspect on the row.
 
 Playback stays behind the app's paywall. `/api/videos/[id]/stream` performs the
-same admin/owner/free-sector/subscription check as before, then returns a
-**signed** Mux playback ID plus short-lived playback, thumbnail and storyboard
-tokens. `VideoPlayer` renders those with `@mux/mux-player-react`. Deleting a
-video also deletes its Mux asset.
+admin/owner/free-sector/subscription check, then returns a short-lived signed
+embed URL that `VideoPlayer` loads in an iframe. Views are recorded from the
+player's Player.js `play` event. Deleting a video also deletes it from Bunny.
+
+### Bunny library setup
+
+1. Create a Stream library and copy its Library ID, API key and read-only API
+   key into `.env.local`.
+2. Under **Security**, enable **Embed view token authentication** and copy the
+   **Token authentication key** into `BUNNY_STREAM_TOKEN_KEY`.
+3. Add your site to **Allowed domains** (exact host, no scheme), then enable
+   **Block Direct URL File Access**.
+4. Set the webhook URL to `https://<your-domain>/api/webhooks/bunny`.
+5. Confirm that a video's `https://<pull-zone>.b-cdn.net/<video-id>/playlist.m3u8`
+   URL returns 403 when opened directly.
+
+## Live streaming (Mux)
 
 Set the webhook URL in the Mux dashboard to:
 
@@ -138,7 +158,7 @@ https://<your-domain>/api/webhooks/mux
 ## Uploads and verification
 
 - **Upload** (creators): `UploadWidget` reads the video metadata, enforces the
-  9:16 and duration rules of the sector, then uploads to Mux and a thumbnail to
+  9:16 and duration rules of the sector, then uploads to Bunny and a thumbnail to
   the public `thumbnails` bucket.
 - Every upload starts as `pending_review` unless the creator is exempt. An
   admin approves or rejects it from `/dashboard/admin/videos`.
@@ -147,7 +167,7 @@ https://<your-domain>/api/webhooks/mux
   creator; only `admin_set_verification_exemption()` changes it.
 - Locked playback is enforced twice: app-side (`isVideoUnlocked` in
   `src/lib/videos.ts` and the id-based `can_access_video_by_id()`), and at the
-  playback route, which issues signed Mux tokens only after that check.
+  playback route, which issues signed Bunny embeds only after that check.
 
 ## Listings and verification
 
@@ -202,8 +222,8 @@ src/
 │   │   ├── gifts/      gift top-ups
 │   │   ├── listings/   profile create/update, photo upload
 │   │   ├── live/       request, start, end, chat, gift
-│   │   ├── videos/     Mux upload creation, delete, playback, view recording
-│   │   ├── webhooks/   Mux asset webhook
+│   │   ├── videos/     upload creation, delete, playback, view recording
+│   │   ├── webhooks/   Bunny video webhook, Mux live webhook
 │   │   └── wallet/     withdrawals
 │   ├── dashboard/      app shell + the sector, studio, admin and account pages
 │   └── login/
@@ -220,10 +240,11 @@ src/
 │   └── wallet/         WalletPanel
 ├── lib/
 │   ├── auth.ts         getCurrentUser, requireUser, requireRole
-│   ├── categories.ts   the ten sectors, access map, upload validation
+│   ├── bunny.ts        Bunny Stream videos, upload signatures, signed embeds, webhooks
+│   ├── categories.ts   the nine sectors, access map, upload validation
 │   ├── live.ts         live types and queries
 │   ├── listings.ts     listing queries, photo URLs, contact visibility
-│   ├── mux.ts          Mux client, direct uploads, playback tokens, webhooks
+│   ├── mux.ts          Mux client, live streams, playback tokens, webhooks
 │   ├── providers/      live.ts — the LiveProvider interface
 │   ├── roles.ts        roles and navigation
 │   ├── videos.ts       video types, padlock logic, status labels
@@ -237,5 +258,4 @@ src/
 - The live media feed is provider-agnostic: the workflow, chat and gifts all
   work, but the actual video stream is served by whatever provider is wired
   into `src/lib/providers/live.ts`.
-- Analytics charts are still placeholders.
-- Leaks takedown and reporting are not implemented.
+- Comments are not implemented.

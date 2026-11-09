@@ -1,10 +1,6 @@
 import Mux from "@mux/mux-node";
 
-/**
- * Mux is optional. When the credentials are present, new uploads are sent
- * straight to Mux and playback uses signed Mux playback IDs. When they are
- * missing the app falls back to the private Supabase Storage bucket.
- */
+/** Mux hosts live streams only. Regular videos are on Bunny Stream. */
 export function isMuxApiConfigured(): boolean {
   return Boolean(process.env.MUX_TOKEN_ID && process.env.MUX_TOKEN_SECRET);
 }
@@ -13,11 +9,6 @@ export function isMuxSigningConfigured(): boolean {
   return Boolean(
     process.env.MUX_SIGNING_KEY && process.env.MUX_PRIVATE_KEY
   );
-}
-
-/** Full playback and upload configuration. */
-export function isMuxConfigured(): boolean {
-  return isMuxApiConfigured() && isMuxSigningConfigured();
 }
 
 export function isMuxWebhookConfigured(): boolean {
@@ -46,84 +37,6 @@ export function getMux(): Mux {
   return client;
 }
 
-export interface MuxDirectUpload {
-  uploadId: string;
-  uploadUrl: string;
-}
-
-/**
- * Creates a direct upload so the browser can send the file straight to Mux
- * instead of proxying it through the app server.
- */
-export async function createMuxDirectUpload(options: {
-  origin: string;
-  videoId: string;
-  title: string;
-}): Promise<MuxDirectUpload> {
-  const mux = getMux();
-
-  const upload = await mux.video.uploads.create({
-    cors_origin: options.origin,
-    timeout: 60 * 60,
-    new_asset_settings: {
-      playback_policies: ["signed"],
-      passthrough: options.videoId,
-      meta: {
-        title: options.title,
-        external_id: options.videoId,
-      },
-    },
-  });
-
-  if (!upload.url) {
-    throw new Error("Mux did not return a direct upload URL");
-  }
-
-  return { uploadId: upload.id, uploadUrl: upload.url };
-}
-
-export interface MuxPlaybackTokens {
-  playback: string;
-  thumbnail: string;
-  storyboard: string;
-}
-
-/**
- * Signed playback means the HLS URL alone is not enough to watch a video.
- * Tokens are short lived and only handed out after the app's access check.
- */
-export async function signMuxPlaybackTokens(
-  playbackId: string,
-  expiration = "6h"
-): Promise<MuxPlaybackTokens> {
-  if (!isMuxSigningConfigured()) {
-    throw new Error(
-      "Mux signed playback is not configured. Set MUX_SIGNING_KEY and MUX_PRIVATE_KEY."
-    );
-  }
-  const mux = getMux();
-
-  const [playback, thumbnail, storyboard] = await Promise.all([
-    mux.jwt.signPlaybackId(playbackId, { type: "video", expiration }),
-    mux.jwt.signPlaybackId(playbackId, { type: "thumbnail", expiration }),
-    mux.jwt.signPlaybackId(playbackId, { type: "storyboard", expiration }),
-  ]);
-
-  return { playback, thumbnail, storyboard };
-}
-
-export async function deleteMuxAsset(assetId: string): Promise<void> {
-  const mux = getMux();
-
-  try {
-    await mux.video.assets.delete(assetId);
-  } catch (error) {
-    // A missing asset is already gone; anything else is worth surfacing.
-    if ((error as { status?: number }).status === 404) return;
-    throw error;
-  }
-}
-
 export async function verifyMuxWebhook(
   body: string,
   headers: Record<string, string>
@@ -134,10 +47,6 @@ export async function verifyMuxWebhook(
 
   return getMux().webhooks.unwrap(body, headers);
 }
-
-// ---------------------------------------------------------------------------
-// Live streaming
-// ---------------------------------------------------------------------------
 
 export const MUX_RTMPS_INGEST_URL = "rtmps://global-live.mux.com:443/app";
 

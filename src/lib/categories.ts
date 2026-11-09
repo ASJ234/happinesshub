@@ -41,18 +41,6 @@ export const CATEGORIES: readonly CategoryDefinition[] = [
     sortOrder: 10,
   },
   {
-    slug: "leaks",
-    label: "Leaks",
-    description: "The latest celebrity leaked videos",
-    kind: "video",
-    access: "paid",
-    aspect: null,
-    maxSeconds: null,
-    requiresVerification: false,
-    href: "/dashboard/leaks",
-    sortOrder: 20,
-  },
-  {
     slug: "wardrobe",
     label: "Wardrobe",
     description: "Merchants selling sex toys",

@@ -2,9 +2,11 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { getCategory, validateUploadForCategory } from "@/lib/categories";
 import {
-  createMuxDirectUpload,
-  isMuxApiConfigured,
-} from "@/lib/mux";
+  createBunnyUploadCredentials,
+  createBunnyVideo,
+  deleteBunnyVideo,
+  isBunnyUploadConfigured,
+} from "@/lib/bunny";
 import {
   createAdminClient,
   isAdminClientConfigured,
@@ -29,12 +31,12 @@ function toPositiveInt(value: unknown): number | null {
 }
 
 /**
- * Starts a Mux direct upload and creates the matching draft row.
+ * Creates the draft row and a Bunny Stream video, then returns credentials
+ * that let the browser upload into that one video.
  *
- * The row exists before the file is uploaded so the Mux webhook has somewhere
- * to attach the asset as soon as it is ready. Clients may not write the mux_*
- * columns directly, so this uses the service-role client after authenticating
- * the caller.
+ * The row exists before the file is uploaded so the Bunny webhook has somewhere
+ * to report to. Clients may not write the bunny_* columns directly, so this
+ * uses the service-role client after authenticating the caller.
  */
 export async function POST(request: Request) {
   const user = await getCurrentUser();
@@ -45,11 +47,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Creators only" }, { status: 403 });
   }
 
-  if (!isMuxApiConfigured() || !isAdminClientConfigured()) {
+  if (!isBunnyUploadConfigured() || !isAdminClientConfigured()) {
     return NextResponse.json(
       {
         error:
-          "Mux is not configured. Set MUX_TOKEN_ID, MUX_TOKEN_SECRET and SUPABASE_SERVICE_ROLE_KEY.",
+          "Bunny Stream is not configured. Set BUNNY_STREAM_LIBRARY_ID, BUNNY_STREAM_API_KEY and SUPABASE_SERVICE_ROLE_KEY.",
       },
       { status: 503 }
     );
@@ -128,7 +130,7 @@ export async function POST(request: Request) {
       height,
       duration_seconds: durationSeconds,
       aspect,
-      mux_status: "waiting",
+      bunny_status: "waiting",
     })
     .select("id, status")
     .maybeSingle();
@@ -141,31 +143,30 @@ export async function POST(request: Request) {
     );
   }
 
+  let bunnyVideoId: string | null = null;
   try {
-    const upload = await createMuxDirectUpload({
-      origin: new URL(request.url).origin,
-      videoId: video.id,
-      title,
-    });
+    bunnyVideoId = await createBunnyVideo(title);
 
     const { error: updateError } = await admin
       .from("videos")
-      .update({ mux_upload_id: upload.uploadId })
+      .update({ bunny_video_id: bunnyVideoId })
       .eq("id", video.id);
 
     if (updateError) throw updateError;
 
     return NextResponse.json({
       videoId: video.id,
-      uploadId: upload.uploadId,
-      uploadUrl: upload.uploadUrl,
+      upload: createBunnyUploadCredentials(bunnyVideoId),
       status: video.status,
     });
   } catch (error) {
+    if (bunnyVideoId) {
+      await deleteBunnyVideo(bunnyVideoId).catch(() => undefined);
+    }
     await admin.from("videos").delete().eq("id", video.id);
-    console.warn(`[videos] Mux upload creation failed: ${String(error)}`);
+    console.warn(`[videos] Bunny upload creation failed: ${String(error)}`);
     return NextResponse.json(
-      { error: "Could not start the Mux upload" },
+      { error: "Could not start the upload" },
       { status: 502 }
     );
   }

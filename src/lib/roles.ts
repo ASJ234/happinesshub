@@ -1,7 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import {
   UtensilsCrossed,
-  Star,
   Radio,
   Zap,
   ImageIcon,
@@ -70,7 +69,6 @@ export const SECTION_ORDER: NavSection[] = [
 
 export const NAV_ITEMS: NavItem[] = [
   { label: "Picha", href: "/dashboard/picha", icon: ImageIcon, roles: ALL_ROLES, section: "main" },
-  { label: "Leaks", href: "/dashboard/leaks", icon: Star, roles: ALL_ROLES, section: "main" },
   { label: "Wardrobe", href: "/dashboard/wardrobe", icon: Shirt, roles: ALL_ROLES, section: "main" },
   { label: "Exclusively Ugandan", href: "/dashboard/ugandan", icon: Flag, roles: ALL_ROLES, section: "main" },
   { label: "Appetizers", href: "/dashboard/appetizers", icon: UtensilsCrossed, roles: ALL_ROLES, section: "main" },

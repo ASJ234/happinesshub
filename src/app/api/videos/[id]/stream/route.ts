@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { fetchCategoryAccess } from "@/lib/categories";
-import { signMuxPlaybackTokens } from "@/lib/mux";
+import { signBunnyEmbedUrl } from "@/lib/bunny";
 import { hasActiveSubscription, isVideoUnlocked } from "@/lib/videos";
 import { createClient } from "@/lib/supabase/server";
 
 // Returns playback details after the app's own access check (admin, own
 // upload, free sector, or active subscription).
 //
-// Mux videos come back as a signed playback ID plus short-lived tokens, so the
-// playback ID alone is useless to anyone who has not passed this route.
+// The response is a short-lived signed embed URL, so the Bunny video ID alone
+// cannot open the player for anyone who has not passed this route.
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -24,7 +24,7 @@ export async function GET(
   const { data: video, error } = await supabase
     .from("videos")
     .select(
-      "id, creator_id, category, status, mux_playback_id, mux_status, mux_error"
+      "id, creator_id, category, status, bunny_video_id, bunny_status, bunny_error"
     )
     .eq("id", id)
     .maybeSingle();
@@ -52,23 +52,21 @@ export async function GET(
     );
   }
 
-  if (video.mux_status === "errored") {
+  if (video.bunny_status === "errored") {
     return NextResponse.json(
-      { error: video.mux_error || "This video could not be processed" },
+      { error: video.bunny_error || "This video could not be processed" },
       { status: 422 }
     );
   }
 
-  if (video.mux_playback_id) {
+  if (video.bunny_video_id && video.bunny_status === "ready") {
     try {
-      const tokens = await signMuxPlaybackTokens(video.mux_playback_id);
       return NextResponse.json({
-        playbackId: video.mux_playback_id,
-        tokens,
+        embedUrl: signBunnyEmbedUrl(video.bunny_video_id),
       });
     } catch (signError) {
       console.warn(
-        `[stream] could not sign Mux playback for ${id}: ${String(signError)}`
+        `[stream] could not sign Bunny playback for ${id}: ${String(signError)}`
       );
       return NextResponse.json(
         { error: "Could not start playback" },

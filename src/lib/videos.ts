@@ -26,11 +26,9 @@ export interface VideoRow {
   height: number | null;
   duration_seconds: number | null;
   aspect: string | null;
-  mux_asset_id: string | null;
-  mux_playback_id: string | null;
-  mux_upload_id: string | null;
-  mux_status: "waiting" | "preparing" | "ready" | "errored" | "cancelled" | null;
-  mux_error: string | null;
+  bunny_video_id: string | null;
+  bunny_status: "waiting" | "processing" | "ready" | "errored" | null;
+  bunny_error: string | null;
   created_at: string;
   creator: { username: string; display_name: string | null } | null;
 }

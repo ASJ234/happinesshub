@@ -12,7 +12,6 @@ import {
   formatViews,
   hasActiveSubscription,
   isVideoUnlocked,
-  thumbnailUrl,
   type VideoRow,
 } from "@/lib/videos";
 
@@ -43,7 +42,6 @@ export default async function WatchPage({
     fetchCategoryAccess(supabase),
   ]);
   const unlocked = isVideoUnlocked(video, user, subscribed, accessMap);
-  const thumb = thumbnailUrl(supabase, video.thumbnail_path);
 
   return (
     <div className="space-y-6">
@@ -63,7 +61,7 @@ export default async function WatchPage({
 
       {unlocked ? (
         <div className="space-y-4">
-          <VideoPlayer videoId={video.id} poster={thumb ?? undefined} />
+          <VideoPlayer videoId={video.id} />
           <div className="bg-surface border border-border rounded-xl p-5">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div>
