@@ -11,7 +11,7 @@ export function createAdminClient() {
 
   if (!serviceRoleKey) {
     throw new Error(
-      "Missing SUPABASE_SERVICE_ROLE_KEY. Mux uploads and webhooks need it."
+      "Missing SUPABASE_SERVICE_ROLE_KEY. Video uploads and webhooks need it."
     );
   }
 

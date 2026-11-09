@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { AlertCircle, CheckCircle2, CloudUpload, FolderOpen } from "lucide-react";
+import { Upload as TusUpload } from "tus-js-client";
 import { createClient } from "@/lib/supabase/client";
 import { VIDEO_CATEGORIES, validateUploadForCategory } from "@/lib/categories";
 
@@ -80,6 +81,39 @@ async function readVideo(file: File): Promise<VideoMeta> {
   return meta;
 }
 
+interface BunnyUpload {
+  endpoint: string;
+  libraryId: string;
+  videoId: string;
+  signature: string;
+  expires: number;
+}
+
+/** Sends the file straight to Bunny, resuming across dropped connections. */
+function uploadToBunny(
+  file: File,
+  title: string,
+  upload: BunnyUpload,
+  onProgress: (percent: number) => void
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    new TusUpload(file, {
+      endpoint: upload.endpoint,
+      retryDelays: [0, 3000, 5000, 10000, 20000],
+      headers: {
+        AuthorizationSignature: upload.signature,
+        AuthorizationExpire: String(upload.expires),
+        LibraryId: upload.libraryId,
+        VideoId: upload.videoId,
+      },
+      metadata: { filetype: file.type, title },
+      onProgress: (sent, total) => onProgress(Math.round((sent / total) * 100)),
+      onError: reject,
+      onSuccess: () => resolve(),
+    }).start();
+  });
+}
+
 export function UploadWidget() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -90,6 +124,7 @@ export function UploadWidget() {
   const [description, setDescription] = useState("");
   const [dragging, setDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [pendingReview, setPendingReview] = useState(false);
@@ -121,6 +156,7 @@ export function UploadWidget() {
     if (uploading) return;
 
     setUploading(true);
+    setProgress(0);
 
     const supabase = createClient();
     const {
@@ -181,7 +217,7 @@ export function UploadWidget() {
       const created = await response.json().catch(() => null);
       if (created?.videoId) pendingVideoId = created.videoId as string;
 
-      if (!response.ok || !created?.uploadUrl || !created?.videoId) {
+      if (!response.ok || !created?.upload || !created?.videoId) {
         if (pendingVideoId) {
           // DELETE also removes the thumbnail from storage.
           await fetch(`/api/videos/${pendingVideoId}`, { method: "DELETE" });
@@ -194,20 +230,12 @@ export function UploadWidget() {
         return;
       }
 
-      const uploadResponse = await fetch(created.uploadUrl as string, {
-        method: "PUT",
-        headers: {
-          "Content-Type": file.type || "application/octet-stream",
-        },
-        body: file,
-      });
-
-      if (!uploadResponse.ok) {
-        await fetch(`/api/videos/${created.videoId}`, { method: "DELETE" });
-        setUploading(false);
-        setError(`Upload to Mux failed (${uploadResponse.status}).`);
-        return;
-      }
+      await uploadToBunny(
+        file,
+        title.trim(),
+        created.upload as BunnyUpload,
+        setProgress
+      );
 
       pendingVideoId = null;
       const isPublished = created.status === "published";
@@ -227,7 +255,7 @@ export function UploadWidget() {
         }).catch(() => undefined);
       }
       setUploading(false);
-      setError("Could not reach the video host. Please try again.");
+      setError("The upload failed. Please try again.");
     }
   }
 
@@ -243,7 +271,7 @@ export function UploadWidget() {
         <p className="text-sm text-muted mb-6">
           {pendingReview
             ? "An admin will review your video before it appears in the feeds. You can watch it from My Content in the meantime."
-            : "Mux is processing your video. It will be playable as soon as encoding finishes."}
+            : "Your video is processing. It will be playable as soon as encoding finishes."}
         </p>
         <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <Link
@@ -374,7 +402,11 @@ export function UploadWidget() {
           disabled={uploading}
           className="w-full bg-primary hover:bg-primary-hover text-white text-sm font-medium py-3 px-4 rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
         >
-          {uploading ? "Uploading... this may take a moment" : "Submit video"}
+          {uploading
+            ? progress > 0
+              ? `Uploading... ${progress}%`
+              : "Uploading... this may take a moment"
+            : "Submit video"}
         </button>
       </div>
     </div>

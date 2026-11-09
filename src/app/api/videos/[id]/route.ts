@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { deleteMuxAsset, isMuxApiConfigured } from "@/lib/mux";
+import { deleteBunnyVideo, isBunnyUploadConfigured } from "@/lib/bunny";
 import { createClient } from "@/lib/supabase/server";
 
-// Deletes a video (owner or admin) along with its Mux asset and cover image.
+// Deletes a video (owner or admin) along with its Bunny video and cover image.
 export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -17,7 +17,7 @@ export async function DELETE(
   const supabase = await createClient();
   const { data: video, error } = await supabase
     .from("videos")
-    .select("id, creator_id, thumbnail_path, mux_asset_id")
+    .select("id, creator_id, thumbnail_path, bunny_video_id")
     .eq("id", id)
     .maybeSingle();
 
@@ -31,13 +31,13 @@ export async function DELETE(
     return NextResponse.json({ error: "Not allowed" }, { status: 403 });
   }
 
-  if (video.mux_asset_id && isMuxApiConfigured()) {
+  if (video.bunny_video_id && isBunnyUploadConfigured()) {
     try {
-      await deleteMuxAsset(video.mux_asset_id);
-    } catch (muxError) {
-      console.warn(`[videos] could not delete Mux asset: ${String(muxError)}`);
+      await deleteBunnyVideo(video.bunny_video_id);
+    } catch (bunnyError) {
+      console.warn(`[videos] could not delete Bunny video: ${String(bunnyError)}`);
       return NextResponse.json(
-        { error: "Could not delete the Mux asset. Try again." },
+        { error: "Could not delete the video file. Try again." },
         { status: 502 }
       );
     }
