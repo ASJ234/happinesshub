@@ -8,6 +8,8 @@ interface VideoPlayerProps {
   videoId: string;
   /** False for owners and admins, whose plays are never counted. */
   countsViews: boolean;
+  width?: number | null;
+  height?: number | null;
 }
 
 interface PlayerJsPlayer {
@@ -29,7 +31,13 @@ const PLAYERJS_URL =
  * subscribers are counted on every play. The server decides, this only reports
  * the outcome back.
  */
-export function VideoPlayer({ videoId, countsViews }: VideoPlayerProps) {
+export function VideoPlayer({
+  videoId,
+  countsViews,
+  width,
+  height,
+}: VideoPlayerProps) {
+  const isVertical = Boolean(width && height && height > width);
   const [embedUrl, setEmbedUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -116,7 +124,11 @@ export function VideoPlayer({ videoId, countsViews }: VideoPlayerProps) {
         onReady={() => setPlayerScript("ready")}
         onError={() => setPlayerScript("failed")}
       />
-      <div className="relative w-full aspect-video max-h-[70vh] bg-black rounded-xl border border-border overflow-hidden">
+      <div
+        className={`relative w-full bg-black rounded-xl border border-border overflow-hidden ${
+          isVertical ? "h-[70vh]" : "aspect-video max-h-[70vh]"
+        }`}
+      >
         {playerScript !== "loading" && (
           <iframe
             ref={iframeRef}
@@ -125,7 +137,14 @@ export function VideoPlayer({ videoId, countsViews }: VideoPlayerProps) {
             allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
             allowFullScreen
             referrerPolicy="strict-origin-when-cross-origin"
-            className="absolute inset-0 w-full h-full"
+            // The site is color-scheme: dark. A light-scheme embed in a dark
+            // page gets an opaque white canvas, so the frame has to match it.
+            className={`[color-scheme:light] absolute ${
+              isVertical
+                ? "inset-y-0 left-1/2 -translate-x-1/2 h-full max-w-full"
+                : "inset-0 w-full h-full"
+            }`}
+            style={isVertical ? { aspectRatio: `${width} / ${height}` } : undefined}
           />
         )}
       </div>
