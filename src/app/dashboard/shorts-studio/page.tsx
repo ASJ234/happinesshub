@@ -11,7 +11,7 @@ export default async function ShortsStudioPage() {
       <PageHeader
         icon={<Zap className="text-primary" size={28} />}
         title="Shorts Studio"
-        description="Create and edit vertical short-form videos"
+        description="Create and edit short-form videos"
         actions={
           <button className="bg-primary hover:bg-primary-hover text-white font-medium px-6 py-2.5 rounded-lg transition-colors whitespace-nowrap">
             Create Short
@@ -23,7 +23,7 @@ export default async function ShortsStudioPage() {
         <Zap size={48} className="text-primary mx-auto mb-4" />
         <h2 className="text-lg font-semibold mb-2">Upload a Short</h2>
         <p className="text-muted text-sm max-w-md mx-auto">
-          Vertical videos up to 60 seconds. Drag and drop or click to upload.
+          Videos up to 60 seconds. Drag and drop or click to upload.
         </p>
       </div>
 

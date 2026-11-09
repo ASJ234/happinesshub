@@ -2,7 +2,6 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 
 export type CategoryKind = "video" | "listing";
 export type CategoryAccess = "free" | "paid";
-export type CategoryAspect = "9:16";
 
 export interface CategoryDefinition {
   slug: string;
@@ -10,8 +9,6 @@ export interface CategoryDefinition {
   description: string;
   kind: CategoryKind;
   access: CategoryAccess;
-  /** Required aspect ratio for uploads. `null` means unconstrained. */
-  aspect: CategoryAspect | null;
   /** Maximum upload duration in seconds. `null` means unconstrained. */
   maxSeconds: number | null;
   requiresVerification: boolean;
@@ -34,7 +31,6 @@ export const CATEGORIES: readonly CategoryDefinition[] = [
     description: "Photo galleries and picture collections",
     kind: "listing",
     access: "free",
-    aspect: null,
     maxSeconds: null,
     requiresVerification: false,
     href: "/dashboard/picha",
@@ -46,7 +42,6 @@ export const CATEGORIES: readonly CategoryDefinition[] = [
     description: "Merchants selling sex toys",
     kind: "listing",
     access: "free",
-    aspect: null,
     maxSeconds: null,
     requiresVerification: false,
     href: "/dashboard/wardrobe",
@@ -58,7 +53,6 @@ export const CATEGORIES: readonly CategoryDefinition[] = [
     description: "Only Ugandan-made videos",
     kind: "video",
     access: "paid",
-    aspect: null,
     maxSeconds: null,
     requiresVerification: false,
     href: "/dashboard/ugandan",
@@ -67,10 +61,9 @@ export const CATEGORIES: readonly CategoryDefinition[] = [
   {
     slug: "appetizers",
     label: "Appetizers",
-    description: "Appetizing vertical videos",
+    description: "Appetizing short videos",
     kind: "video",
     access: "paid",
-    aspect: "9:16",
     maxSeconds: 300,
     requiresVerification: false,
     href: "/dashboard/appetizers",
@@ -79,10 +72,9 @@ export const CATEGORIES: readonly CategoryDefinition[] = [
   {
     slug: "quickies",
     label: "Quickies",
-    description: "Short vertical videos",
+    description: "Short videos",
     kind: "video",
     access: "paid",
-    aspect: "9:16",
     maxSeconds: 120,
     requiresVerification: false,
     href: "/dashboard/quickies",
@@ -94,7 +86,6 @@ export const CATEGORIES: readonly CategoryDefinition[] = [
     description: "Massage ladies available to hire",
     kind: "listing",
     access: "free",
-    aspect: null,
     maxSeconds: null,
     requiresVerification: true,
     href: "/dashboard/masseuse",
@@ -106,7 +97,6 @@ export const CATEGORIES: readonly CategoryDefinition[] = [
     description: "Companions available to book",
     kind: "listing",
     access: "free",
-    aspect: null,
     maxSeconds: null,
     requiresVerification: true,
     href: "/dashboard/hookups",
@@ -118,7 +108,6 @@ export const CATEGORIES: readonly CategoryDefinition[] = [
     description: "Live streams and their recordings",
     kind: "video",
     access: "paid",
-    aspect: null,
     maxSeconds: null,
     requiresVerification: false,
     href: "/dashboard/live",
@@ -130,7 +119,6 @@ export const CATEGORIES: readonly CategoryDefinition[] = [
     description: "Every video on the platform",
     kind: "video",
     access: "paid",
-    aspect: null,
     maxSeconds: null,
     requiresVerification: false,
     href: "/dashboard/explore",
@@ -213,23 +201,10 @@ export function isFreeAccess(
  */
 export function validateUploadForCategory(
   category: string,
-  meta: { width?: number | null; height?: number | null; durationSeconds?: number | null }
+  meta: { durationSeconds?: number | null }
 ): string | null {
   const def = BY_SLUG.get(category);
   if (!def || def.kind !== "video") return null;
-
-  if (def.aspect === "9:16") {
-    const { width, height } = meta;
-    if (!width || !height) {
-      return "Could not read the video dimensions. Try a different file.";
-    }
-    // 9:16 tolerates a small deviation so real phone footage still passes.
-    const ratio = width / height;
-    const target = 9 / 16;
-    if (Math.abs(ratio - target) / target > 0.08) {
-      return `${def.label} must be vertical (9:16). This file is ${ratio.toFixed(2)}:1.`;
-    }
-  }
 
   if (def.maxSeconds && meta.durationSeconds) {
     if (meta.durationSeconds > def.maxSeconds) {

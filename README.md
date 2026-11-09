@@ -94,8 +94,8 @@ is used as the fallback (unknown slugs fail closed as **paid**).
 | Picha | listing | free | photo galleries and picture collections |
 | Wardrobe | listing | free | merchants selling sex toys |
 | Exclusively Ugandan | video | paid | only Ugandan-made videos |
-| Appetizers | video | paid | 9:16, max 5 minutes |
-| Quickies | video | paid | 9:16, max 2 minutes |
+| Appetizers | video | paid | max 5 minutes |
+| Quickies | video | paid | max 2 minutes |
 | Masseuse | listing | free | **admin verification required** |
 | Hookups | listing | free | **admin verification required** |
 | Live | video | paid | live streams and their recordings |
@@ -160,7 +160,7 @@ https://<your-domain>/api/webhooks/mux
 ## Uploads and verification
 
 - **Upload** (creators): `UploadWidget` reads the video metadata, enforces the
-  9:16 and duration rules of the sector, then uploads to Bunny and a thumbnail to
+  duration limit of the sector, then uploads to Bunny and a thumbnail to
   the public `thumbnails` bucket.
 - Every upload starts as `pending_review` unless the creator is exempt. An
   admin approves or rejects it from `/dashboard/admin/videos`.
