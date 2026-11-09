@@ -61,7 +61,7 @@ export default async function WatchPage({
 
       {unlocked ? (
         <div className="space-y-4">
-          <VideoPlayer videoId={video.id} />
+          <VideoPlayer videoId={video.id} countsViews={!isOwnVideo && !isAdmin} />
           <div className="bg-surface border border-border rounded-xl p-5">
             <div className="flex items-center justify-between gap-3 flex-wrap">
               <div>

@@ -6,6 +6,8 @@ import { Eye, EyeOff, Loader2 } from "lucide-react";
 
 interface VideoPlayerProps {
   videoId: string;
+  /** False for owners and admins, whose plays are never counted. */
+  countsViews: boolean;
 }
 
 interface PlayerJsPlayer {
@@ -27,7 +29,7 @@ const PLAYERJS_URL =
  * subscribers are counted on every play. The server decides, this only reports
  * the outcome back.
  */
-export function VideoPlayer({ videoId }: VideoPlayerProps) {
+export function VideoPlayer({ videoId, countsViews }: VideoPlayerProps) {
   const [embedUrl, setEmbedUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -78,13 +80,18 @@ export function VideoPlayer({ videoId }: VideoPlayerProps) {
   // The iframe only renders once the script has settled, so the listener is
   // attached before the player can announce that it is ready.
   useEffect(() => {
-    if (playerScript !== "ready" || !iframeRef.current || !window.playerjs) {
+    if (
+      !countsViews ||
+      playerScript !== "ready" ||
+      !iframeRef.current ||
+      !window.playerjs
+    ) {
       return;
     }
 
     const player = new window.playerjs.Player(iframeRef.current);
     player.on("ready", () => player.on("play", recordView));
-  }, [playerScript, embedUrl, recordView]);
+  }, [countsViews, playerScript, embedUrl, recordView]);
 
   if (loading) {
     return (

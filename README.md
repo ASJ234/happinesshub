@@ -67,6 +67,7 @@ again. Each file ends with a `select` that shows what it created.
 | 15 | `0015_mux.sql` | Mux columns on `videos`, nullable `video_path`, id-based access check, Mux-aware view recording |
 | 17 | `0017_remove_leaks.sql` | removes the Leaks sector and any videos in it |
 | 18 | `0018_bunny.sql` | Bunny Stream columns on `videos` |
+| 19 | `0019_admin_views.sql` | admin plays no longer count as views |
 
 ### Applying them without the SQL editor
 
