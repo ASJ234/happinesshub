@@ -63,12 +63,20 @@ export async function proxy(request: NextRequest) {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // getUser() may have refreshed or removed the session cookies on `response`.
+  // A redirect is a new response, so those changes must be copied onto it.
+  const redirectTo = (path: string) => {
+    const redirect = NextResponse.redirect(new URL(path, request.url));
+    response.cookies.getAll().forEach((cookie) => redirect.cookies.set(cookie));
+    return redirect;
+  };
+
   if (!user) {
     if (isLandingPath(pathname)) {
       return response;
     }
     if (pathname.startsWith("/dashboard")) {
-      return NextResponse.redirect(new URL("/login", request.url));
+      return redirectTo("/login");
     }
     return response;
   }
@@ -76,7 +84,7 @@ export async function proxy(request: NextRequest) {
   // Signed-in users skip the landing page and the login screen — but stay on
   // /dashboard itself (redirecting it would loop forever).
   if (pathname === "/" || isLoginPath(pathname)) {
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    return redirectTo("/dashboard");
   }
 
   return response;
