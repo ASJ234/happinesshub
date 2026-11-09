@@ -11,6 +11,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { Logo } from "./Logo";
+import { MobileNav } from "./MobileNav";
 import type { User } from "@/lib/roles";
 import { getNavForRole, ROLE_LABELS } from "@/lib/roles";
 
@@ -31,7 +32,8 @@ export function Header({ user }: HeaderProps) {
 
   return (
     <header className="fixed top-0 left-0 right-0 bg-header border-b border-border z-40">
-      <div className="flex items-center gap-3 h-14 px-3 sm:px-4">
+      <div className="flex items-center gap-2 lg:gap-3 h-14 px-3 sm:px-4">
+        <MobileNav user={user} onLogout={handleLogout} />
         <Logo size="sm" />
 
         <nav className="hidden lg:flex items-center gap-1 text-sm min-w-0 overflow-x-auto no-scrollbar">
@@ -111,7 +113,7 @@ export function Header({ user }: HeaderProps) {
 
               <button
                 onClick={handleLogout}
-                className="p-2 text-muted hover:text-foreground hover:bg-surface-elevated rounded-lg transition-colors"
+                className="hidden sm:block p-2 text-muted hover:text-foreground hover:bg-surface-elevated rounded-lg transition-colors"
                 title="Sign out"
               >
                 <LogOut size={18} />

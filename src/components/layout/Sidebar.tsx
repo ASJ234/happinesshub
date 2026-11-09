@@ -2,33 +2,39 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { NavItem, User } from "@/lib/roles";
+import type { NavItem, Role, User } from "@/lib/roles";
 import { SECTION_LABELS, SECTION_ORDER, getNavForRole } from "@/lib/roles";
 
 export function Sidebar({ user }: { user: User | null }) {
-  const pathname = usePathname();
-  const items = getNavForRole(user?.role ?? "viewer");
-
   return (
     <aside className="hidden lg:flex fixed left-0 top-14 bottom-0 w-60 bg-sidebar border-r border-border flex-col z-30">
-      <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-5">
-        {SECTION_ORDER.map((section) => {
-          const sectionItems = items.filter((item) => item.section === section);
-          if (sectionItems.length === 0) return null;
-
-          return (
-            <div key={section} className="space-y-1">
-              <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-muted/70">
-                {SECTION_LABELS[section]}
-              </p>
-              {sectionItems.map((item) => (
-                <NavLink key={item.href} item={item} pathname={pathname} />
-              ))}
-            </div>
-          );
-        })}
-      </nav>
+      <NavSections role={user?.role ?? "viewer"} />
     </aside>
+  );
+}
+
+export function NavSections({ role }: { role: Role }) {
+  const pathname = usePathname();
+  const items = getNavForRole(role);
+
+  return (
+    <nav className="flex-1 overflow-y-auto py-4 px-3 space-y-5">
+      {SECTION_ORDER.map((section) => {
+        const sectionItems = items.filter((item) => item.section === section);
+        if (sectionItems.length === 0) return null;
+
+        return (
+          <div key={section} className="space-y-1">
+            <p className="px-3 text-[11px] font-semibold uppercase tracking-wider text-muted/70">
+              {SECTION_LABELS[section]}
+            </p>
+            {sectionItems.map((item) => (
+              <NavLink key={item.href} item={item} pathname={pathname} />
+            ))}
+          </div>
+        );
+      })}
+    </nav>
   );
 }
 
