@@ -1,44 +1,71 @@
-import { liveStreams } from "@/lib/mock-data";
+import Link from "next/link";
+import { getCurrentUser } from "@/lib/auth";
+import { fetchLiveStreams } from "@/lib/live";
+import { createClient } from "@/lib/supabase/server";
+import { Card } from "@/components/ui/Card";
+import { LiveStreamCard } from "@/components/live/LiveStreamCard";
 
-export function LiveStreams() {
+export async function LiveStreams() {
+  const user = await getCurrentUser();
+  const canGoLive = user?.role === "creator" || user?.role === "admin";
+  // Live streams are only readable by signed-in users.
+  const streams = user
+    ? await fetchLiveStreams(await createClient(), { status: "live", limit: 3 })
+    : [];
+
   return (
     <section>
       <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-semibold">Live Stream</h2>
-          <div className="flex items-center gap-1.5 text-sm text-muted">
-            <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
-            Live now: 12 streams active
-          </div>
+          {streams.length > 0 && (
+            <div className="flex items-center gap-1.5 text-sm text-muted">
+              <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" />
+              Live now
+            </div>
+          )}
         </div>
-        <button className="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors">
-          Go Live
-        </button>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/dashboard/live"
+            className="text-sm text-primary hover:text-primary-hover font-medium"
+          >
+            See all
+          </Link>
+          {canGoLive && (
+            <Link
+              href="/dashboard/live-studio"
+              className="bg-red-600 hover:bg-red-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"
+            >
+              Go Live
+            </Link>
+          )}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {liveStreams.map((stream) => (
-          <div
-            key={stream.id}
-            className="bg-surface border border-border rounded-xl overflow-hidden group cursor-pointer hover:border-primary/30 transition-colors"
-          >
-            <div className={`relative aspect-video bg-gradient-to-br ${stream.thumbnail}`}>
-              <span className="absolute top-2 left-2 bg-red-600 text-white text-[10px] font-bold px-2 py-0.5 rounded">
-                LIVE
-              </span>
-              <span className="absolute bottom-2 left-2 bg-black/60 text-white text-xs px-2 py-0.5 rounded">
-                {stream.viewers} watching
-              </span>
-            </div>
-            <div className="p-3">
-              <h3 className="text-sm font-medium line-clamp-2 group-hover:text-primary transition-colors">
-                {stream.title}
-              </h3>
-              <p className="text-xs text-muted mt-1">{stream.creator}</p>
-            </div>
-          </div>
-        ))}
-      </div>
+      {streams.length > 0 ? (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {streams.map((stream) => (
+            <LiveStreamCard key={stream.id} stream={stream} />
+          ))}
+        </div>
+      ) : (
+        <Card className="p-8 text-center text-sm text-muted">
+          {user ? (
+            "Nobody is live right now. Check back soon."
+          ) : (
+            <>
+              <Link
+                href="/login"
+                className="text-primary hover:text-primary-hover font-medium"
+              >
+                Sign in
+              </Link>{" "}
+              to watch live streams.
+            </>
+          )}
+        </Card>
+      )}
     </section>
   );
 }
