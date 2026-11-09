@@ -1,6 +1,4 @@
 import { getCurrentUser } from "@/lib/auth";
-import { UploadWidget } from "@/components/dashboard/UploadWidget";
-import { UploadTips } from "@/components/dashboard/UploadTips";
 import { LiveStreams } from "@/components/dashboard/LiveStreams";
 import { ShortsClips } from "@/components/dashboard/ShortsClips";
 import { VideoSection } from "@/components/dashboard/VideoSection";
@@ -26,16 +24,7 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      {isCreator ? (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2">
-            <UploadWidget />
-          </div>
-          <div>
-            <UploadTips />
-          </div>
-        </div>
-      ) : (
+      {!isCreator && (
         <div className="bg-surface border border-border rounded-2xl p-8 text-center">
           <h2 className="text-lg font-semibold mb-2">Explore HAPPYPORN.COM</h2>
           <p className="text-muted text-sm max-w-md mx-auto">
