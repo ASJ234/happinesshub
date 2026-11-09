@@ -5,6 +5,7 @@ import { requireUser } from "@/lib/auth";
 import { fetchCategoryAccess } from "@/lib/categories";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { VideoComments } from "@/components/comments/VideoComments";
 import { VideoPlayer } from "@/components/videos/VideoPlayer";
 import {
   creatorLabel,
@@ -81,6 +82,10 @@ export default async function WatchPage({
               </p>
             )}
           </div>
+          <VideoComments
+            videoId={video.id}
+            canComment={video.status === "published"}
+          />
         </div>
       ) : (
         <div className="bg-surface border border-border rounded-xl p-10 max-w-lg text-center mx-auto">
