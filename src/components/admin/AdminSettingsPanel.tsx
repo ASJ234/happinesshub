@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Gift, MessageCircle, Save } from "lucide-react";
+import { inputClass } from "@/components/ui/styles";
 
 interface AdminSettingsPanelProps {
   settings: {
@@ -34,8 +35,6 @@ const WEEKDAYS = [
   { value: 7, label: "Sunday" },
 ];
 
-const inputClass =
-  "w-full bg-surface-elevated border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50";
 
 export function AdminSettingsPanel({ settings, gifts }: AdminSettingsPanelProps) {
   const router = useRouter();

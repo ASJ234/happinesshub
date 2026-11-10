@@ -10,6 +10,7 @@ import {
   WEEKDAY_NAMES,
   type LiveStreamRow,
 } from "@/lib/live";
+import { inputClass } from "@/components/ui/styles";
 
 interface LiveStudioPanelProps {
   streams: LiveStreamRow[];
@@ -22,8 +23,6 @@ interface StreamCredentials {
   streamKey: string;
 }
 
-const inputClass =
-  "w-full bg-surface-elevated border border-border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50";
 
 function CopyField({ label, value }: { label: string; value: string }) {
   const [copied, setCopied] = useState(false);

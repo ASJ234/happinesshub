@@ -1,6 +1,7 @@
 import { Lock, MapPin, Phone } from "lucide-react";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
+import { EmptyState } from "@/components/ui/EmptyState";
 import {
   contactIsVisible,
   listingOwnerLabel,
@@ -95,9 +96,7 @@ export function ListingGrid({
 }: ListingGridProps) {
   if (listings.length === 0) {
     return (
-      <div className="bg-surface border border-dashed border-border rounded-xl p-10 text-center">
-        <p className="text-sm text-muted">{emptyMessage}</p>
-      </div>
+      <EmptyState>{emptyMessage}</EmptyState>
     );
   }
 
