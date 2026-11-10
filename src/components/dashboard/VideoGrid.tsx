@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Eye, Lock, Play } from "lucide-react";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import { fetchCategoryAccess } from "@/lib/categories";
@@ -51,10 +52,7 @@ export async function VideoGrid({
 
   if (videos.length === 0) {
     return (
-      <div className="bg-surface border border-dashed border-border rounded-xl p-10 text-center">
-        <Play size={28} className="text-muted mx-auto mb-3" />
-        <p className="text-sm text-muted">{emptyMessage}</p>
-      </div>
+      <EmptyState icon={Play}>{emptyMessage}</EmptyState>
     );
   }
 

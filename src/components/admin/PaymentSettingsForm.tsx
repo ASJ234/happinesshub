@@ -3,10 +3,9 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save } from "lucide-react";
-import type { PaymentSettings } from "@/components/subscription/SubscriptionPanel";
+import type { PaymentSettings } from "@/lib/subscriptions";
+import { inputLargeClass } from "@/components/ui/styles";
 
-const inputClass =
-  "w-full bg-surface-elevated border border-border rounded-lg px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50";
 
 interface PaymentSettingsFormProps {
   settings: PaymentSettings | null;
@@ -59,7 +58,7 @@ export function PaymentSettingsForm({ settings }: PaymentSettingsFormProps) {
             type="text"
             value={accountName}
             onChange={(e) => setAccountName(e.target.value)}
-            className={inputClass}
+            className={inputLargeClass}
           />
         </div>
         <div>
@@ -70,7 +69,7 @@ export function PaymentSettingsForm({ settings }: PaymentSettingsFormProps) {
             type="text"
             value={phoneNumber}
             onChange={(e) => setPhoneNumber(e.target.value)}
-            className={inputClass}
+            className={inputLargeClass}
           />
         </div>
       </div>

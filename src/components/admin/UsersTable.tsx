@@ -15,7 +15,7 @@ export interface AdminUserRow {
   verification_exempted: boolean;
 }
 
-const ROLES: Role[] = ["viewer", "creator", "admin"];
+const ROLES: Role[] = ["viewer", "creator", "provider", "vendor", "admin"];
 
 const selectClass =
   "bg-surface-elevated border border-border rounded-lg px-2.5 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50";

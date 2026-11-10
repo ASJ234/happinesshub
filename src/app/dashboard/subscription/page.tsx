@@ -5,25 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import { fetchSubscriptionPlans } from "@/lib/videos";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
-import { SubscriptionPanel, type SubscriptionState } from "@/components/subscription/SubscriptionPanel";
-
-interface SubscriptionShape {
-  status: string | null;
-  expires_at: string | null;
-}
-
-function subscriptionState(latest: SubscriptionShape | null): SubscriptionState {
-  if (!latest?.status || latest.status === "pending") {
-    return (latest?.status as SubscriptionState) ?? "none";
-  }
-  if (latest.status === "active") {
-    const expiresAt = latest.expires_at ? new Date(latest.expires_at) : null;
-    return expiresAt === null || expiresAt.getTime() > Date.now()
-      ? "active"
-      : "expired";
-  }
-  return "rejected";
-}
+import { SubscriptionPanel } from "@/components/subscription/SubscriptionPanel";
+import { subscriptionState } from "@/lib/subscriptions";
 
 export default async function SubscriptionPage() {
   const user = await requireUser();
