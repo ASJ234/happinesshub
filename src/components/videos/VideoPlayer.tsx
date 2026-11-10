@@ -37,8 +37,7 @@ export function VideoPlayer({
   width,
   height,
 }: VideoPlayerProps) {
-  const ratio = width && height ? width / height : null;
-  const isVertical = ratio !== null && ratio < 1;
+  const isVertical = Boolean(width && height && height > width);
   const [embedUrl, setEmbedUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -126,7 +125,7 @@ export function VideoPlayer({
         onError={() => setPlayerScript("failed")}
       />
       <div
-        className={`relative w-full bg-black rounded-xl border border-border overflow-hidden [container-type:size] ${
+        className={`relative w-full bg-black rounded-xl border border-border overflow-hidden ${
           isVertical ? "h-[70vh]" : "aspect-video max-h-[70vh]"
         }`}
       >
@@ -138,21 +137,13 @@ export function VideoPlayer({
             allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
             allowFullScreen
             referrerPolicy="strict-origin-when-cross-origin"
+            // The frame always fills the box and the player letterboxes the
+            // video inside it, so fullscreen keeps it centred. Sizing the frame
+            // itself to the video's shape pushed it to the left in fullscreen.
             // The site is color-scheme: dark. A light-scheme embed in a dark
-            // page gets an opaque white canvas, so the frame has to match it.
-            className={`[color-scheme:light] absolute inset-0 m-auto ${
-              ratio === null ? "w-full h-full" : ""
-            }`}
-            // Largest frame of the video's own shape that fits the box, so
-            // every video shows whole, centred on the black background.
-            style={
-              ratio === null
-                ? undefined
-                : {
-                    width: `min(100cqw, calc(100cqh * ${ratio}))`,
-                    aspectRatio: String(ratio),
-                  }
-            }
+            // page gets an opaque white canvas, so the frame has to match it,
+            // which keeps it transparent over the black box.
+            className="[color-scheme:light] absolute inset-0 w-full h-full"
           />
         )}
       </div>
