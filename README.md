@@ -69,6 +69,7 @@ again. Each file ends with a `select` that shows what it created.
 | 18 | `0018_bunny.sql` | Bunny Stream columns on `videos` |
 | 19 | `0019_admin_views.sql` | admin plays no longer count as views |
 | 20 | `0020_comments.sql` | `video_comments` and the functions for posting, listing, hiding and deleting them |
+| 21 | `0021_service_providers.sql` | `provider` and `vendor` roles, who may list in which sector, profile pictures, `listing_items` (services and products) |
 
 ### Applying them without the SQL editor
 
@@ -92,7 +93,7 @@ is used as the fallback (unknown slugs fail closed as **paid**).
 | Sector | Kind | Access | Rule |
 | --- | --- | --- | --- |
 | Picha | listing | free | photo galleries and picture collections |
-| Wardrobe | listing | free | merchants selling sex toys |
+| Wardrobe | listing | free | vendors selling sex toys, products with a UGX price |
 | Exclusively Ugandan | video | paid | only Ugandan-made videos |
 | Appetizers | video | paid | max 5 minutes |
 | Quickies | video | paid | max 2 minutes |
@@ -173,9 +174,22 @@ https://<your-domain>/api/webhooks/mux
 
 ## Listings and verification
 
-- Creators publish profiles from `/dashboard/my-listing` (one per sector).
+- Account types: a viewer switches once, in Settings, to **Creator** (videos
+  and Picha), **Service Provider** (one Masseuse *or* Hookups profile) or
+  **Vendor** (a Wardrobe shop). After that only an admin changes it.
+  `can_list_in()` enforces who may list where.
+- Everyone manages their profile at `/dashboard/my-listing` (shown as
+  My Profiles, My Profile or My Shop). A profile has a profile picture, a bio
+  and a number. Providers add **services** (photo + description); vendors add
+  **products** (photo + name + price in UGX, the price is required). Both are
+  rows in `listing_items`.
+- Masseuse and Hookups list profiles with their picture, number and bio;
+  tapping one opens `/dashboard/profiles/[id]` with the photos and services.
+  Wardrobe lists every product; **Buy** opens a pop-up with the seller's
+  number. There is no checkout.
 - Picha and Wardrobe profiles publish immediately. **Masseuse and Hookups**
-  start as `pending` and need an admin at `/dashboard/admin/listings`.
+  start as `pending` and need an admin at `/dashboard/admin/listings`. The
+  status is set by the `prepare_listing` trigger, never by the request.
 - Approval requires a full-body photo **and** a face photo, enforced by the
   `admin_review_listing()` RPC. Body and face photos live in the private
   `listing-verification` bucket and are only served as short-lived signed URLs

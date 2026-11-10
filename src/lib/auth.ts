@@ -19,7 +19,11 @@ export function isValidUsername(username: string): boolean {
 }
 
 function parseRole(value: unknown): Role {
-  return value === "creator" || value === "admin" || value === "viewer"
+  return value === "creator" ||
+    value === "provider" ||
+    value === "vendor" ||
+    value === "admin" ||
+    value === "viewer"
     ? value
     : "viewer";
 }

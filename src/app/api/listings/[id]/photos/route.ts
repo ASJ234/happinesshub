@@ -1,83 +1,53 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
+import {
+  jsonError,
+  loadEditableListing,
+  readForm,
+  readImage,
+  uploadImage,
+} from "@/lib/listing-routes";
 
-const PHOTO_KINDS = ["body", "face", "gallery", "product", "other"] as const;
+const PHOTO_KINDS = [
+  "avatar",
+  "body",
+  "face",
+  "gallery",
+  "product",
+  "other",
+] as const;
 type PhotoKind = (typeof PHOTO_KINDS)[number];
 
 const PRIVATE_KINDS: PhotoKind[] = ["body", "face"];
 
+type Params = { params: Promise<{ id: string }> };
+
 // Uploads a photo for a listing. Body and face photos go into the private
-// verification bucket; gallery and product photos go into the public bucket.
-export async function POST(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+// verification bucket; the profile picture, gallery and product photos go into
+// the public bucket. A new profile picture replaces the previous one.
+export async function POST(request: Request, { params }: Params) {
   const { id } = await params;
 
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: "Sign in required" }, { status: 401 });
-  }
+  const ctx = await loadEditableListing(id);
+  if ("response" in ctx) return ctx.response;
+  const { user, supabase } = ctx;
 
-  let form: FormData;
-  try {
-    form = await request.formData();
-  } catch {
-    return NextResponse.json({ error: "Invalid request body" }, { status: 400 });
-  }
+  const form = await readForm(request);
+  if ("response" in form) return form.response;
 
-  const file = form.get("file");
+  const file = readImage(form);
+  if (typeof file === "string") return jsonError(file, 400);
+
   const rawKind = String(form.get("kind") ?? "gallery");
-
-  if (!(file instanceof File) || file.size === 0) {
-    return NextResponse.json({ error: "Choose a photo to upload" }, { status: 400 });
-  }
-
-  if (!file.type.startsWith("image/")) {
-    return NextResponse.json(
-      { error: "Only image files are accepted" },
-      { status: 400 }
-    );
-  }
-
   const kind = (PHOTO_KINDS as readonly string[]).includes(rawKind)
     ? (rawKind as PhotoKind)
     : "gallery";
-
-  const supabase = await createClient();
-
-  const { data: listing } = await supabase
-    .from("listings")
-    .select("id, user_id")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (!listing) {
-    return NextResponse.json({ error: "Profile not found" }, { status: 404 });
-  }
-
-  if (listing.user_id !== user.id && user.role !== "admin") {
-    return NextResponse.json({ error: "Not allowed" }, { status: 403 });
-  }
-
   const bucket = PRIVATE_KINDS.includes(kind)
     ? "listing-verification"
     : "thumbnails";
-  const ext = file.name.match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase() ?? "jpg";
-  const path = `${user.id}/${crypto.randomUUID()}.${ext}`;
 
-  const { error: uploadError } = await supabase.storage
-    .from(bucket)
-    .upload(path, file, { contentType: file.type, upsert: false });
-
-  if (uploadError) {
-    console.warn(`[listings] photo upload failed: ${uploadError.message}`);
-    return NextResponse.json(
-      { error: `Upload failed: ${uploadError.message}` },
-      { status: 500 }
-    );
-  }
+  const upload = await uploadImage(supabase, bucket, user.id, file);
+  if ("response" in upload) return upload.response;
+  const { path } = upload;
 
   const { error: insertError } = await supabase
     .from("listing_photos")
@@ -86,47 +56,41 @@ export async function POST(
   if (insertError) {
     await supabase.storage.from(bucket).remove([path]);
     console.warn(`[listings] photo insert failed: ${insertError.message}`);
-    return NextResponse.json(
-      { error: "Could not attach the photo" },
-      { status: 500 }
-    );
+    return jsonError("Could not attach the photo", 500);
+  }
+
+  if (kind === "avatar") {
+    const { data: previous } = await supabase
+      .from("listing_photos")
+      .select("id, path")
+      .eq("listing_id", id)
+      .eq("kind", "avatar")
+      .neq("path", path);
+
+    if (previous && previous.length > 0) {
+      await supabase
+        .from("listing_photos")
+        .delete()
+        .in("id", previous.map((photo) => photo.id));
+      await supabase.storage
+        .from("thumbnails")
+        .remove(previous.map((photo) => photo.path));
+    }
   }
 
   return NextResponse.json({ success: true, path, kind, bucket });
 }
 
 // Removes a photo from a listing and deletes the underlying file.
-export async function DELETE(
-  request: Request,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function DELETE(request: Request, { params }: Params) {
   const { id } = await params;
 
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: "Sign in required" }, { status: 401 });
-  }
-
   const photoId = new URL(request.url).searchParams.get("id");
-  if (!photoId) {
-    return NextResponse.json({ error: "Missing photo id" }, { status: 400 });
-  }
+  if (!photoId) return jsonError("Missing photo id", 400);
 
-  const supabase = await createClient();
-
-  const { data: listing } = await supabase
-    .from("listings")
-    .select("id, user_id")
-    .eq("id", id)
-    .maybeSingle();
-
-  if (!listing) {
-    return NextResponse.json({ error: "Profile not found" }, { status: 404 });
-  }
-
-  if (listing.user_id !== user.id && user.role !== "admin") {
-    return NextResponse.json({ error: "Not allowed" }, { status: 403 });
-  }
+  const ctx = await loadEditableListing(id);
+  if ("response" in ctx) return ctx.response;
+  const { supabase } = ctx;
 
   const { data: photo } = await supabase
     .from("listing_photos")
@@ -135,9 +99,7 @@ export async function DELETE(
     .eq("listing_id", id)
     .maybeSingle();
 
-  if (!photo) {
-    return NextResponse.json({ error: "Photo not found" }, { status: 404 });
-  }
+  if (!photo) return jsonError("Photo not found", 404);
 
   const { error: deleteError } = await supabase
     .from("listing_photos")
@@ -146,10 +108,7 @@ export async function DELETE(
 
   if (deleteError) {
     console.warn(`[listings] photo delete failed: ${deleteError.message}`);
-    return NextResponse.json(
-      { error: "Could not remove the photo" },
-      { status: 500 }
-    );
+    return jsonError("Could not remove the photo", 500);
   }
 
   await supabase.storage.from(photo.bucket).remove([photo.path]);

@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
 import type { Role } from "@/lib/roles";
 
-const VALID_ROLES: Role[] = ["viewer", "creator", "admin"];
+const VALID_ROLES: Role[] = ["viewer", "creator", "provider", "vendor", "admin"];
 
 // Admin CRUD on user profiles. Role changes go through RLS (admin policy)
 // plus protect_profile_role(); deletion runs through the admin_delete_user RPC.

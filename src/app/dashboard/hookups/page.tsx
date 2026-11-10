@@ -1,12 +1,12 @@
 import { Sparkles } from "lucide-react";
-import { ListingFeed } from "@/components/listings/ListingFeed";
+import { ProviderFeed } from "@/components/listings/ProviderFeed";
 
 export default function HookupsPage() {
   return (
-    <ListingFeed
+    <ProviderFeed
       icon={Sparkles}
       title="Hookups"
-      description="Companions available to book"
+      description="Companions available to book. Tap a profile to see photos and services."
       category="hookups"
       emptyMessage="No profiles listed yet. Check back soon."
     />

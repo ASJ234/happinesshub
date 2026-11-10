@@ -65,7 +65,7 @@ export function Header({ user }: HeaderProps) {
 
         <div className="flex items-center gap-1.5 sm:gap-2">
           {user &&
-            user.role !== "viewer" && (
+            (user.role === "creator" || user.role === "admin") && (
               <Link
                 href="/dashboard/upload"
                 className="hidden sm:flex items-center gap-2 bg-primary hover:bg-primary-hover text-white text-sm font-medium px-4 py-2 rounded-lg transition-colors"

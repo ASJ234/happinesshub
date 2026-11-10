@@ -21,9 +21,10 @@ import {
   Settings,
   ShieldCheck,
   Contact,
+  Store,
 } from "lucide-react";
 
-export type Role = "viewer" | "creator" | "admin";
+export type Role = "viewer" | "creator" | "provider" | "vendor" | "admin";
 
 export type NavSection = "main" | "studio" | "account" | "admin";
 
@@ -47,6 +48,8 @@ export interface NavItem {
 export const ROLE_LABELS: Record<Role, string> = {
   viewer: "Viewer",
   creator: "Creator",
+  provider: "Service Provider",
+  vendor: "Vendor",
   admin: "Admin",
 };
 
@@ -57,7 +60,7 @@ export const SECTION_LABELS: Record<NavSection, string> = {
   admin: "Administration",
 };
 
-const ALL_ROLES: Role[] = ["viewer", "creator", "admin"];
+const ALL_ROLES: Role[] = ["viewer", "creator", "provider", "vendor", "admin"];
 const CREATOR_ROLES: Role[] = ["creator", "admin"];
 
 export const SECTION_ORDER: NavSection[] = [
@@ -84,6 +87,8 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Live Studio", href: "/dashboard/live-studio", icon: Video, roles: CREATOR_ROLES, section: "studio" },
   { label: "My Content", href: "/dashboard/my-content", icon: FolderOpen, roles: CREATOR_ROLES, section: "studio" },
   { label: "My Profiles", href: "/dashboard/my-listing", icon: Contact, roles: CREATOR_ROLES, section: "studio" },
+  { label: "My Profile", href: "/dashboard/my-listing", icon: Contact, roles: ["provider"], section: "studio" },
+  { label: "My Shop", href: "/dashboard/my-listing", icon: Store, roles: ["vendor"], section: "studio" },
   { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3, roles: CREATOR_ROLES, section: "studio" },
   { label: "Comments", href: "/dashboard/comments", icon: MessageSquare, roles: CREATOR_ROLES, section: "studio" },
   { label: "Monetization", href: "/dashboard/monetization", icon: Coins, roles: CREATOR_ROLES, section: "studio" },
