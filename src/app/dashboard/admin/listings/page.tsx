@@ -8,7 +8,16 @@ import {
   ListingReviewTable,
   type AdminListingRow,
 } from "@/components/admin/ListingReviewTable";
-import { signedVerificationUrls } from "@/lib/listings";
+import {
+  AllListingsTable,
+  type AdminListingSummary,
+} from "@/components/admin/AllListingsTable";
+import {
+  fetchListings,
+  listingAvatarUrl,
+  listingOwnerLabel,
+  signedVerificationUrls,
+} from "@/lib/listings";
 
 export default async function AdminListingsPage() {
   await requireRole("admin");
@@ -49,12 +58,25 @@ export default async function AdminListingsPage() {
     .select("id")
     .eq("verification_status", "rejected");
 
+  const all: AdminListingSummary[] = (
+    await fetchListings(supabase, { limit: 1000 })
+  ).map((listing) => ({
+    id: listing.id,
+    category: listing.category,
+    display_name: listing.display_name,
+    verification_status: listing.verification_status,
+    owner: listingOwnerLabel(listing),
+    avatarUrl: listingAvatarUrl(supabase, listing),
+    itemCount: listing.items.length,
+    created_at: listing.created_at,
+  }));
+
   return (
     <div className="space-y-6">
       <PageHeader
         icon={<ShieldCheck className="text-primary" size={28} />}
-        title="Profile Verification"
-        description="Check the body and face photos of every Masseuse and Hookups profile"
+        title="Profiles and shops"
+        description="Verify Masseuse and Hookups profiles, and manage every profile and Wardrobe shop"
       />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -79,6 +101,17 @@ export default async function AdminListingsPage() {
           </p>
         </div>
         <ListingReviewTable listings={listings} />
+      </Card>
+
+      <Card className="overflow-hidden">
+        <div className="p-4 border-b border-border">
+          <h2 className="font-semibold">All profiles and shops</h2>
+          <p className="text-xs text-muted mt-0.5">
+            Manage edits a profile, its photos, services and products, or
+            deletes it. Take down hides an approved profile.
+          </p>
+        </div>
+        <AllListingsTable listings={all} />
       </Card>
     </div>
   );

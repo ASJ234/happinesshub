@@ -51,7 +51,12 @@ export async function POST(request: Request) {
   if (owned.includes(category)) {
     return jsonError("You already have a profile in this sector", 409);
   }
-  if (isServiceCategory(category) && owned.some(isServiceCategory)) {
+  // Admins may run both service profiles; providers get exactly one.
+  if (
+    user.role !== "admin" &&
+    isServiceCategory(category) &&
+    owned.some(isServiceCategory)
+  ) {
     return jsonError(
       "A service provider can have only one Masseuse or Hookups profile",
       409

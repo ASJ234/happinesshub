@@ -6,9 +6,7 @@ import { ListingManager } from "@/components/listings/ListingManager";
 import {
   fetchListings,
   listingCategoriesForRole,
-  type ManagedListing,
-  publicPhotoUrl,
-  signedVerificationUrls,
+  toManagedListing,
 } from "@/lib/listings";
 
 const HEADINGS: Record<string, { title: string; description: string }> = {
@@ -29,29 +27,8 @@ export default async function MyListingPage() {
   const supabase = await createClient();
   const listings = await fetchListings(supabase, { userId: user.id });
 
-  const managed: ManagedListing[] = await Promise.all(
-    listings.map(async (listing) => ({
-      id: listing.id,
-      category: listing.category,
-      display_name: listing.display_name,
-      description: listing.description,
-      verification_status: listing.verification_status,
-      review_note: listing.review_note,
-      contact: listing.contact,
-      photos: listing.photos,
-      items: listing.items.map((item) => ({
-        ...item,
-        photoUrl: publicPhotoUrl(supabase, item.photo_path),
-      })),
-      photoUrls: {
-        ...Object.fromEntries(
-          listing.photos
-            .filter((photo) => photo.bucket === "thumbnails")
-            .map((photo) => [photo.path, publicPhotoUrl(supabase, photo.path)])
-        ),
-        ...(await signedVerificationUrls(supabase, listing.photos)),
-      },
-    }))
+  const managed = await Promise.all(
+    listings.map((listing) => toManagedListing(supabase, listing))
   );
 
   const heading = HEADINGS[user.role] ?? {

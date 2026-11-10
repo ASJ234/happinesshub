@@ -5,16 +5,23 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ExternalLink, ImagePlus, Trash2 } from "lucide-react";
 import { VerifiedBadge } from "@/components/ui/VerifiedBadge";
-import { readError } from "@/lib/fetch-error";
+import {
+  chipButtonClass,
+  primaryButtonClass,
+  removeButtonClass,
+} from "@/components/ui/styles";
 import { getCategory } from "@/lib/categories";
+import { readError } from "@/lib/fetch-error";
+import { deleteListing } from "@/lib/listing-actions";
 import { isServiceCategory, type ManagedListing } from "@/lib/listings";
 import { ItemManager } from "./ItemManager";
 import { ProfileAvatar } from "./ProfileAvatar";
 import { ProfileFields, type ProfileValues } from "./ProfileFields";
-import { chipButtonClass, primaryButtonClass, removeButtonClass } from "@/components/ui/styles";
 
 interface ListingEditorProps {
   listing: ManagedListing;
+  /** Where to go once the profile is deleted; stays on the page if unset. */
+  afterDeleteHref?: string;
 }
 
 const PHOTO_KINDS = {
@@ -28,7 +35,7 @@ const PHOTO_KINDS = {
 } as const;
 
 /** Edits one profile: details, profile picture, photos, services/products. */
-export function ListingEditor({ listing }: ListingEditorProps) {
+export function ListingEditor({ listing, afterDeleteHref }: ListingEditorProps) {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
   const kindRef = useRef<string>("gallery");
@@ -104,6 +111,26 @@ export function ListingEditor({ listing }: ListingEditorProps) {
     );
   }
 
+  async function remove() {
+    const label = getCategory(listing.category)?.label ?? "profile";
+    if (
+      !window.confirm(
+        `Delete the ${label} profile "${listing.display_name}" with all its photos, services and products? This cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    setBusy(true);
+    setError(null);
+    const problem = await deleteListing(listing.id);
+    setBusy(false);
+
+    if (problem) return setError(problem);
+    if (afterDeleteHref) router.push(afterDeleteHref);
+    router.refresh();
+  }
+
   function pickPhoto(kind: string) {
     kindRef.current = kind;
     fileRef.current?.click();
@@ -175,9 +202,20 @@ export function ListingEditor({ listing }: ListingEditorProps) {
       {error && <p className="text-xs text-red-400">{error}</p>}
       {note && <p className="text-xs text-green-400">{note}</p>}
 
-      <button onClick={save} disabled={busy} className={primaryButtonClass}>
-        {busy ? "Saving..." : "Save"}
-      </button>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <button onClick={save} disabled={busy} className={primaryButtonClass}>
+          {busy ? "Saving..." : "Save"}
+        </button>
+        <button
+          type="button"
+          onClick={remove}
+          disabled={busy}
+          className="inline-flex items-center gap-1.5 text-xs text-red-400 hover:text-red-300 font-medium disabled:opacity-50"
+        >
+          <Trash2 size={13} />
+          Delete profile
+        </button>
+      </div>
 
       {photoKinds.length > 0 && (
         <div className="border-t border-border pt-5">

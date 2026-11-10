@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Check, Eye, X } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { getCategory } from "@/lib/categories";
+import { reviewListing } from "@/lib/listing-actions";
 import type { ListingPhoto, VerificationStatus } from "@/lib/listings";
 
 export interface AdminListingRow {
@@ -35,17 +36,11 @@ export function ListingReviewTable({ listings }: ListingReviewTableProps) {
     setBusyId(listing.id);
     setMessage(null);
 
-    const response = await fetch("/api/admin/listings", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: listing.id, action }),
-    });
-
-    const body = await response.json().catch(() => null);
+    const problem = await reviewListing(listing.id, action);
     setBusyId(null);
 
-    if (!response.ok) {
-      setMessage(body?.error ?? "Could not update the profile");
+    if (problem) {
+      setMessage(problem);
       return;
     }
 
