@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, MapPin, Phone } from "lucide-react";
+import { ArrowLeft, MapPin, Pencil, Phone } from "lucide-react";
 import { BuyButton } from "@/components/listings/BuyButton";
 import { ItemCard } from "@/components/listings/ItemCard";
 import { ProfileAvatar } from "@/components/listings/ProfileAvatar";
@@ -36,18 +36,36 @@ export default async function ProfilePage({
   const isShop = listing.category === "wardrobe";
   const photos = listingPhotoUrls(supabase, listing);
   const phone = listing.contact?.phone_number ?? null;
+  // Admins manage any profile; owners manage their own from My Profile.
+  const manageHref =
+    user.role === "admin"
+      ? `/dashboard/admin/listings/${listing.id}`
+      : user.id === listing.user_id
+        ? "/dashboard/my-listing"
+        : null;
 
   return (
     <div className="space-y-8 max-w-5xl">
-      {category && (
-        <Link
-          href={category.href}
-          className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground transition-colors"
-        >
-          <ArrowLeft size={16} />
-          {category.label}
-        </Link>
-      )}
+      <div className="flex items-center justify-between gap-3">
+        {category && (
+          <Link
+            href={category.href}
+            className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground transition-colors"
+          >
+            <ArrowLeft size={16} />
+            {category.label}
+          </Link>
+        )}
+        {manageHref && (
+          <Link
+            href={manageHref}
+            className="inline-flex items-center gap-1.5 text-sm text-primary hover:text-primary-hover font-medium"
+          >
+            <Pencil size={14} />
+            Manage
+          </Link>
+        )}
+      </div>
 
       <div className="bg-surface border border-border rounded-2xl p-5 sm:p-6 flex flex-col sm:flex-row gap-5">
         <ProfileAvatar

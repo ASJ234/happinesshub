@@ -1,6 +1,7 @@
 import { UserRound } from "lucide-react";
 
 const SIZES = {
+  sm: { box: "w-10 h-10", icon: 18 },
   md: { box: "w-16 h-16", icon: 28 },
   lg: { box: "w-20 h-20", icon: 30 },
   xl: { box: "w-28 h-28", icon: 44 },

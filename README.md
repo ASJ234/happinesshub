@@ -70,6 +70,7 @@ again. Each file ends with a `select` that shows what it created.
 | 19 | `0019_admin_views.sql` | admin plays no longer count as views |
 | 20 | `0020_comments.sql` | `video_comments` and the functions for posting, listing, hiding and deleting them |
 | 21 | `0021_service_providers.sql` | `provider` and `vendor` roles, who may list in which sector, profile pictures, `listing_items` (services and products) |
+| 22 | `0022_admin_listings.sql` | admins can add photos, services and products to any listing; admins skip the one-service rule |
 
 ### Applying them without the SQL editor
 
@@ -190,6 +191,11 @@ https://<your-domain>/api/webhooks/mux
 - Picha and Wardrobe profiles publish immediately. **Masseuse and Hookups**
   start as `pending` and need an admin at `/dashboard/admin/listings`. The
   status is set by the `prepare_listing` trigger, never by the request.
+- **Admins** manage everything from `/dashboard/admin/listings`: the review
+  queue, plus every profile and shop with Approve / Reject (or Take down for
+  an approved one), Manage (`/dashboard/admin/listings/[id]`: edit details,
+  photos, services and products, or delete) and View. Owners can delete their
+  own profile too.
 - Approval requires a full-body photo **and** a face photo, enforced by the
   `admin_review_listing()` RPC. Body and face photos live in the private
   `listing-verification` bucket and are only served as short-lived signed URLs

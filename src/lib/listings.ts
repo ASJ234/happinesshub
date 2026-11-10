@@ -253,3 +253,34 @@ export async function fetchWardrobeProducts(
 
   return (data ?? []) as unknown as WardrobeProduct[];
 }
+
+/** Builds the editable form of a listing, with every photo URL resolved. */
+export async function toManagedListing(
+  supabase: SupabaseClient,
+  listing: ListingRow
+): Promise<ManagedListing> {
+  const publicUrls = Object.fromEntries(
+    listing.photos
+      .filter((photo) => photo.bucket === "thumbnails")
+      .map((photo) => [photo.path, publicPhotoUrl(supabase, photo.path)])
+  );
+
+  return {
+    id: listing.id,
+    category: listing.category,
+    display_name: listing.display_name,
+    description: listing.description,
+    verification_status: listing.verification_status,
+    review_note: listing.review_note,
+    contact: listing.contact,
+    photos: listing.photos,
+    items: listing.items.map((item) => ({
+      ...item,
+      photoUrl: publicPhotoUrl(supabase, item.photo_path),
+    })),
+    photoUrls: {
+      ...publicUrls,
+      ...(await signedVerificationUrls(supabase, listing.photos)),
+    },
+  };
+}

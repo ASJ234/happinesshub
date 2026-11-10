@@ -22,12 +22,12 @@ function readPrice(raw: string): number | string {
 }
 
 // Adds a service (Masseuse, Hookups: photo + description) or a product
-// (Wardrobe: photo + name + price) to a listing the signed-in user owns.
+// (Wardrobe: photo + name + price) to a listing. Owners and admins only.
 // The photo goes into the public 'thumbnails' bucket.
 export async function POST(request: Request, { params }: Params) {
   const { id } = await params;
 
-  const ctx = await loadEditableListing(id, { allowAdmin: false });
+  const ctx = await loadEditableListing(id);
   if ("response" in ctx) return ctx.response;
   const { user, supabase, listing } = ctx;
 

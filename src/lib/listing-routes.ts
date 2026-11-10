@@ -20,9 +20,9 @@ export function jsonError(error: string, status: number): NextResponse {
   return NextResponse.json({ error }, { status });
 }
 
+/** Loads a listing the signed-in user owns, or any listing for an admin. */
 export async function loadEditableListing(
-  id: string,
-  { allowAdmin = true }: { allowAdmin?: boolean } = {}
+  id: string
 ): Promise<EditableListing | { response: NextResponse }> {
   const user = await getCurrentUser();
   if (!user) return { response: jsonError("Sign in required", 401) };
@@ -37,7 +37,7 @@ export async function loadEditableListing(
   if (!listing) return { response: jsonError("Profile not found", 404) };
 
   const isOwner = listing.user_id === user.id;
-  if (!isOwner && !(allowAdmin && user.role === "admin")) {
+  if (!isOwner && user.role !== "admin") {
     return { response: jsonError("Not allowed", 403) };
   }
 
