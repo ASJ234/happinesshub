@@ -10,6 +10,7 @@ import {
   type WithdrawalRow,
 } from "@/lib/wallet";
 import { inputClass } from "@/components/ui/styles";
+import { GiftTopUpForm } from "./GiftTopUpForm";
 
 interface WalletPanelProps {
   balance: number;
@@ -19,6 +20,7 @@ interface WalletPanelProps {
   payoutMethod: string;
   payoutAccount: string;
   giftBalance: number;
+  payTo?: { account_name: string; phone_number: string } | null;
 }
 
 
@@ -30,6 +32,7 @@ export function WalletPanel({
   payoutMethod,
   payoutAccount,
   giftBalance,
+  payTo,
 }: WalletPanelProps) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -39,10 +42,6 @@ export function WalletPanel({
   const [amount, setAmount] = useState("");
   const [method, setMethod] = useState(payoutMethod || "mtn");
   const [account, setAccount] = useState(payoutAccount || "");
-
-  const [giftAmount, setGiftAmount] = useState("");
-  const [paidFrom, setPaidFrom] = useState("");
-  const [reference, setReference] = useState("");
 
   async function withdraw() {
     setBusy(true);
@@ -65,36 +64,6 @@ export function WalletPanel({
 
     setNotice("Withdrawal requested. The amount is on hold until an admin pays it.");
     setAmount("");
-    router.refresh();
-  }
-
-  async function topUp() {
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-
-    const response = await fetch("/api/gifts/deposit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        amount: Number(giftAmount),
-        paid_from: paidFrom,
-        reference,
-      }),
-    });
-
-    const body = await response.json().catch(() => null);
-    setBusy(false);
-
-    if (!response.ok) {
-      setError(body?.error ?? "Could not send the top-up");
-      return;
-    }
-
-    setNotice("Top-up sent. An admin approves it before the credit can be used.");
-    setGiftAmount("");
-    setPaidFrom("");
-    setReference("");
     router.refresh();
   }
 
@@ -199,54 +168,7 @@ export function WalletPanel({
           )}
         </div>
 
-        <div className="bg-surface border border-border rounded-2xl p-5 space-y-4">
-          <h2 className="font-semibold">Top up gift credit</h2>
-          <p className="text-xs text-muted">
-            Send the money to the account the site shows, then enter the
-            reference. An admin approves the credit.
-          </p>
-
-          <div>
-            <label className="text-sm text-muted block mb-1.5">Amount</label>
-            <input
-              type="number"
-              min="1"
-              step="0.01"
-              value={giftAmount}
-              onChange={(e) => setGiftAmount(e.target.value)}
-              className={inputClass}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm text-muted block mb-1.5">Paid from</label>
-              <input
-                type="text"
-                value={paidFrom}
-                onChange={(e) => setPaidFrom(e.target.value)}
-                className={inputClass}
-              />
-            </div>
-            <div>
-              <label className="text-sm text-muted block mb-1.5">Reference</label>
-              <input
-                type="text"
-                value={reference}
-                onChange={(e) => setReference(e.target.value)}
-                className={inputClass}
-              />
-            </div>
-          </div>
-
-          <button
-            onClick={topUp}
-            disabled={busy || !Number(giftAmount) || !paidFrom.trim() || !reference.trim()}
-            className="bg-primary hover:bg-primary-hover text-white text-sm font-medium py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50"
-          >
-            {busy ? "Sending..." : "Send top-up"}
-          </button>
-        </div>
+        <GiftTopUpForm payTo={payTo} />
       </div>
 
       <div className="bg-surface border border-border rounded-2xl p-5">

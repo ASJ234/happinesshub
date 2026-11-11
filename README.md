@@ -71,6 +71,7 @@ again. Each file ends with a `select` that shows what it created.
 | 20 | `0020_comments.sql` | `video_comments` and the functions for posting, listing, hiding and deleting them |
 | 21 | `0021_service_providers.sql` | `provider` and `vendor` roles, who may list in which sector, profile pictures, `listing_items` (services and products) |
 | 22 | `0022_admin_listings.sql` | admins can add photos, services and products to any listing; admins skip the one-service rule |
+| 23 | `0023_live_gift_lock.sql` | `send_live_gift()` locks per sender so simultaneous gifts cannot overspend gift credit |
 
 ### Applying them without the SQL editor
 

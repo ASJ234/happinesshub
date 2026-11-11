@@ -3,15 +3,16 @@ import { Radio } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { LiveStudioPanel } from "@/components/live/LiveStudioPanel";
-import { fetchLiveStreams } from "@/lib/live";
+import { fetchLiveGifts, fetchLiveStreams } from "@/lib/live";
 
 export default async function LiveStudioPage() {
   const user = await requireRole("creator", "admin");
 
   const supabase = await createClient();
-  const [streams, canGoLive] = await Promise.all([
+  const [streams, canGoLive, gifts] = await Promise.all([
     fetchLiveStreams(supabase, { creatorId: user.id, limit: 30 }),
     supabase.rpc("can_go_live_today").then(({ data }) => Boolean(data)),
+    fetchLiveGifts(supabase),
   ]);
 
   const todayLabel = new Date().toLocaleDateString(undefined, {
@@ -30,6 +31,7 @@ export default async function LiveStudioPage() {
 
       <LiveStudioPanel
         streams={streams}
+        gifts={gifts}
         canGoLiveToday={canGoLive}
         todayLabel={todayLabel}
       />

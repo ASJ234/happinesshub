@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from "react";
 import { Gift, Loader2, Radio } from "lucide-react";
+import Link from "next/link";
 import MuxPlayer from "@mux/mux-player-react";
-import { createClient } from "@/lib/supabase/client";
 import { LiveChat } from "@/components/live/LiveChat";
+import { GiftAlerts } from "./GiftAlerts";
+import { useLiveGiftFeed } from "./useLiveGiftFeed";
 import type { LiveChatMessage, LiveGift, LiveStreamRow } from "@/lib/live";
 
 interface LiveViewerProps {
@@ -13,13 +15,6 @@ interface LiveViewerProps {
   initialMessages: LiveChatMessage[];
   giftBalance: number;
   isOwner: boolean;
-}
-
-interface GiftPing {
-  id: number;
-  giftName: string;
-  emoji: string;
-  sender: string;
 }
 
 type PlaybackState =
@@ -36,71 +31,50 @@ export function LiveViewer({
   giftBalance,
   isOwner,
 }: LiveViewerProps) {
-  const [pings, setPings] = useState<GiftPing[]>([]);
+  const { alerts, total: giftTotal } = useLiveGiftFeed(stream.id, gifts, stream.gift_total);
   const [notice, setNotice] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [balance, setBalance] = useState(giftBalance);
-  const [playback, setPlayback] = useState<PlaybackState>(
+  // Which playback to fetch, or null when there is nothing to play yet. The
+  // result is stored with the key it belongs to, so "loading" is simply "no
+  // result for the current key" and never has to be set from inside an effect.
+  const playbackKey =
     stream.status === "live" && stream.mux_playback_id
-      ? { kind: "loading" }
-      : { kind: "idle" }
+      ? `${stream.id}:${stream.mux_playback_id}`
+      : null;
+  const [fetched, setFetched] = useState<{ key: string; state: PlaybackState } | null>(
+    null
   );
+  const playback: PlaybackState = !playbackKey
+    ? { kind: "idle" }
+    : fetched?.key === playbackKey
+      ? fetched.state
+      : { kind: "loading" };
 
   // Fetch a signed playback token when the stream is live and Mux is involved.
   useEffect(() => {
-    if (stream.status !== "live" || !stream.mux_playback_id) return;
+    if (!playbackKey) return;
     let cancelled = false;
 
-    setPlayback({ kind: "loading" });
+    const settle = (state: PlaybackState) => {
+      if (!cancelled) setFetched({ key: playbackKey, state });
+    };
 
     fetch(`/api/live/${stream.id}/playback`)
       .then(async (res) => {
         const body = await res.json().catch(() => null);
-        if (cancelled) return;
         if (res.status === 403 && body?.locked) {
-          setPlayback({ kind: "locked" });
+          settle({ kind: "locked" });
         } else if (!res.ok) {
-          setPlayback({ kind: "error", message: body?.error ?? "Could not start playback" });
+          settle({ kind: "error", message: body?.error ?? "Could not start playback" });
         } else {
-          setPlayback({ kind: "ready", playbackId: body.playbackId, token: body.token });
+          settle({ kind: "ready", playbackId: body.playbackId, token: body.token });
         }
       })
-      .catch(() => {
-        if (!cancelled) {
-          setPlayback({ kind: "error", message: "Could not reach the streaming server" });
-        }
-      });
+      .catch(() => settle({ kind: "error", message: "Could not reach the streaming server" }));
 
     return () => { cancelled = true; };
-  }, [stream.id, stream.status, stream.mux_playback_id]);
-
-  useEffect(() => {
-    const supabase = createClient();
-    const channel = supabase
-      .channel(`live-gifts:${stream.id}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "live_gift_sends",
-          filter: `stream_id=eq.${stream.id}`,
-        },
-        () => {
-          setPings((prev) => [
-            ...prev.slice(-4),
-            { id: Date.now(), giftName: "Gift", emoji: "🎁", sender: "Someone" },
-          ]);
-          setTimeout(
-            () => setPings((prev) => prev.filter((ping) => ping.id !== Date.now())),
-            4000
-          );
-        }
-      )
-      .subscribe();
-
-    return () => { supabase.removeChannel(channel); };
-  }, [stream.id]);
+  }, [playbackKey, stream.id]);
 
   async function sendGift(gift: LiveGift) {
     if (sending) return;
@@ -199,26 +173,14 @@ export function LiveViewer({
             </span>
           )}
 
-          {pings.length > 0 && (
-            <div className="absolute top-3 right-3 space-y-1 z-10">
-              {pings.map((ping) => (
-                <div
-                  key={ping.id}
-                  className="bg-black/70 text-white text-xs px-2.5 py-1 rounded flex items-center gap-1.5"
-                >
-                  <span>{ping.emoji}</span>
-                  <span>{ping.giftName}</span>
-                </div>
-              ))}
-            </div>
-          )}
+          <GiftAlerts alerts={alerts} className="absolute top-3 right-3 z-10" />
         </div>
 
         <div className="bg-surface border border-border rounded-xl p-4">
           <h1 className="font-semibold text-lg">{stream.title}</h1>
           <p className="text-sm text-muted mt-1">{stream.description}</p>
           <p className="text-xs text-muted mt-3">
-            {stream.viewers} watching · ${stream.gift_total.toFixed(2)} in gifts
+            {stream.viewers} watching · ${giftTotal.toFixed(2)} in gifts
           </p>
         </div>
       </div>
@@ -266,7 +228,10 @@ export function LiveViewer({
             </div>
 
             <p className="text-[11px] text-muted mt-3">
-              Top up your gift credit from the Subscription page.
+              <Link href="/dashboard/subscription#gift-credit" className="text-primary hover:underline">
+                Top up your gift credit
+              </Link>{" "}
+              on the Subscription page.
             </p>
           </div>
         )}
