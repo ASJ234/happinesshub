@@ -2,29 +2,39 @@ import { requireRole } from "@/lib/auth";
 import { Zap } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { ShortsClips } from "@/components/dashboard/ShortsClips";
+import { UploadWidget } from "@/components/dashboard/UploadWidget";
+import { getCategory } from "@/lib/categories";
+
+const SHORTS_CATEGORY = "quickies";
 
 export default async function ShortsStudioPage() {
   await requireRole("creator", "admin");
+
+  // Quickies' own limit, so the copy here can never drift from what is enforced.
+  const maxSeconds = getCategory(SHORTS_CATEGORY)?.maxSeconds ?? 120;
 
   return (
     <div className="space-y-8">
       <PageHeader
         icon={<Zap className="text-primary" size={28} />}
         title="Shorts Studio"
-        description="Create and edit short-form videos"
+        description="Upload short-form videos"
         actions={
-          <button className="bg-primary hover:bg-primary-hover text-white font-medium px-6 py-2.5 rounded-lg transition-colors whitespace-nowrap">
+          <a
+            href="#upload-short"
+            className="bg-primary hover:bg-primary-hover text-white font-medium px-6 py-2.5 rounded-lg transition-colors whitespace-nowrap"
+          >
             Create Short
-          </button>
+          </a>
         }
       />
 
-      <div className="bg-surface border border-dashed border-primary/40 rounded-xl p-12 text-center">
-        <Zap size={48} className="text-primary mx-auto mb-4" />
-        <h2 className="text-lg font-semibold mb-2">Upload a Short</h2>
-        <p className="text-muted text-sm max-w-md mx-auto">
-          Videos up to 60 seconds. Drag and drop or click to upload.
-        </p>
+      <div id="upload-short" className="scroll-mt-24">
+        <UploadWidget
+          lockedCategory={SHORTS_CATEGORY}
+          heading="Upload a Short"
+          subheading={`Videos up to ${maxSeconds} seconds — MP4, MOV, WebM. Drag and drop or click to upload.`}
+        />
       </div>
 
       <ShortsClips />
