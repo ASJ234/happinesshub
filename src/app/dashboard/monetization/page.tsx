@@ -14,7 +14,7 @@ export default async function MonetizationPage() {
 
   const supabase = await createClient();
 
-  const [wallet, transactions, withdrawals, settings, giftBalance] =
+  const [wallet, transactions, withdrawals, settings, giftBalance, payment] =
     await Promise.all([
       fetchWallet(supabase, user.id),
       fetchTransactions(supabase, user.id),
@@ -25,6 +25,11 @@ export default async function MonetizationPage() {
         .eq("id", true)
         .maybeSingle(),
       supabase.rpc("gift_balance").then(({ data }) => Number(data ?? 0)),
+      supabase
+        .from("payment_settings")
+        .select("account_name, phone_number")
+        .eq("id", true)
+        .maybeSingle(),
     ]);
 
   return (
@@ -43,6 +48,7 @@ export default async function MonetizationPage() {
         payoutMethod={settings.data?.payout_method ?? "mtn"}
         payoutAccount={settings.data?.payout_account ?? ""}
         giftBalance={giftBalance}
+        payTo={payment.data}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import { CreditCard, DollarSign, ShieldCheck } from "lucide-react";
+import { CreditCard, DollarSign, Gift, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { requireUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
@@ -6,6 +6,9 @@ import { fetchSubscriptionPlans } from "@/lib/videos";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { SubscriptionPanel } from "@/components/subscription/SubscriptionPanel";
+import { StatCard } from "@/components/ui/StatCard";
+import { GiftTopUpForm } from "@/components/wallet/GiftTopUpForm";
+import { money } from "@/lib/wallet";
 import { subscriptionState } from "@/lib/subscriptions";
 
 export default async function SubscriptionPage() {
@@ -40,7 +43,7 @@ export default async function SubscriptionPage() {
     );
   }
 
-  const [settingsResult, latestResult, plans] = await Promise.all([
+  const [settingsResult, latestResult, plans, giftBalance] = await Promise.all([
     supabase.from("payment_settings").select("*").eq("id", true).maybeSingle(),
     supabase
       .from("subscriptions")
@@ -50,6 +53,7 @@ export default async function SubscriptionPage() {
       .limit(1)
       .maybeSingle(),
     fetchSubscriptionPlans(supabase),
+    supabase.rpc("gift_balance").then(({ data }) => Number(data ?? 0)),
   ]);
 
   const latest = latestResult.data;
@@ -69,6 +73,16 @@ export default async function SubscriptionPage() {
         plans={plans}
         state={state}
       />
+
+      <section id="gift-credit" className="scroll-mt-24 space-y-4">
+        <h2 className="text-lg font-semibold">Gift credit</h2>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <StatCard label="Gift credit to spend on live streams" value={money(giftBalance)} icon={Gift} />
+          <div className="lg:col-span-2">
+            <GiftTopUpForm payTo={settingsResult.data} />
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

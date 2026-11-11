@@ -8,12 +8,15 @@ import {
   LIVE_ALLOWED_WEEKDAYS,
   liveStatusLabel,
   WEEKDAY_NAMES,
+  type LiveGift,
   type LiveStreamRow,
 } from "@/lib/live";
+import { StudioGiftFeed } from "./StudioGiftFeed";
 import { inputClass } from "@/components/ui/styles";
 
 interface LiveStudioPanelProps {
   streams: LiveStreamRow[];
+  gifts: LiveGift[];
   canGoLiveToday: boolean;
   todayLabel: string;
 }
@@ -59,6 +62,7 @@ function CopyField({ label, value }: { label: string; value: string }) {
 
 export function LiveStudioPanel({
   streams,
+  gifts,
   canGoLiveToday,
   todayLabel,
 }: LiveStudioPanelProps) {
@@ -245,7 +249,7 @@ export function LiveStudioPanel({
                 <p className="font-medium text-sm truncate">{stream.title}</p>
                 <p className="text-xs text-muted mt-0.5 flex items-center gap-2">
                   <StatusBadge status={liveStatusLabel(stream.status)} />
-                  {stream.gift_total > 0 && (
+                  {stream.status !== "live" && stream.gift_total > 0 && (
                     <span>${stream.gift_total.toFixed(2)} in gifts</span>
                   )}
                   {stream.scheduled_for && (
@@ -284,6 +288,14 @@ export function LiveStudioPanel({
                   </button>
                 )}
               </div>
+
+              {stream.status === "live" && (
+                <StudioGiftFeed
+                  streamId={stream.id}
+                  gifts={gifts}
+                  initialTotal={stream.gift_total}
+                />
+              )}
             </div>
           ))
         )}
