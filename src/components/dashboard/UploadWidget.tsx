@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert } from "@/components/ui/Alert";
 import { Field } from "@/components/ui/Field";
@@ -25,18 +25,31 @@ function lengthHint(slug: string): string | null {
   return `${minutes} minute${minutes === 1 ? "" : "s"} or shorter.`;
 }
 
-export function UploadWidget() {
+interface UploadWidgetProps {
+  /** Locks the upload to one sector and hides the category picker. */
+  lockedCategory?: string;
+  heading?: string;
+  subheading?: string;
+}
+
+export function UploadWidget({
+  lockedCategory,
+  heading = "Upload Your Video",
+  subheading = "Share your video with the world in just a few clicks — MP4, MOV, WebM",
+}: UploadWidgetProps = {}) {
   const router = useRouter();
+  const initialCategory = lockedCategory ?? DEFAULT_CATEGORY;
 
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
-  const [category, setCategory] = useState(DEFAULT_CATEGORY);
+  const [category, setCategory] = useState(initialCategory);
   const [description, setDescription] = useState("");
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
   const [pendingReview, setPendingReview] = useState(false);
+  const pickedRef = useRef<File | null>(null);
 
   function pickFile(next: File | undefined) {
     if (!next) return;
@@ -46,6 +59,20 @@ export function UploadWidget() {
     }
     setError(null);
     setFile(next);
+    pickedRef.current = next;
+    // Catch an over-long clip as soon as it is picked rather than at submit.
+    if (lockedCategory) {
+      readVideo(next).then((meta) => {
+        const problem = meta.readable
+          ? validateUploadForCategory(lockedCategory, meta)
+          : null;
+        // Ignore the result if another file was picked in the meantime.
+        if (problem && pickedRef.current === next) {
+          setFile(null);
+          setError(problem);
+        }
+      });
+    }
     if (!title.trim()) {
       setTitle(next.name.replace(/\.[^.]+$/, "").slice(0, 200));
     }
@@ -131,7 +158,7 @@ export function UploadWidget() {
       setFile(null);
       setTitle("");
       setDescription("");
-      setCategory(DEFAULT_CATEGORY);
+      setCategory(initialCategory);
       router.refresh();
     } catch {
       if (pendingVideoId) {
@@ -155,10 +182,8 @@ export function UploadWidget() {
 
       <div className="relative space-y-4">
         <div>
-          <h2 className="text-lg font-semibold mb-1">Upload Your Video</h2>
-          <p className="text-sm text-muted">
-            Share your video with the world in just a few clicks — MP4, MOV, WebM
-          </p>
+          <h2 className="text-lg font-semibold mb-1">{heading}</h2>
+          <p className="text-sm text-muted">{subheading}</p>
         </div>
 
         <VideoDropzone file={file} onPick={pickFile} />
@@ -173,19 +198,21 @@ export function UploadWidget() {
               className={inputLargeClass}
             />
           </Field>
-          <Field label="Category" hint={lengthHint(category)}>
-            <select
-              value={category}
-              onChange={(e) => setCategory(e.target.value)}
-              className={inputLargeClass}
-            >
-              {VIDEO_CATEGORIES.map((c) => (
-                <option key={c.slug} value={c.slug}>
-                  {c.label}
-                </option>
-              ))}
-            </select>
-          </Field>
+          {!lockedCategory && (
+            <Field label="Category" hint={lengthHint(category)}>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                className={inputLargeClass}
+              >
+                {VIDEO_CATEGORIES.map((c) => (
+                  <option key={c.slug} value={c.slug}>
+                    {c.label}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          )}
           <Field label="Description" optional className="sm:col-span-2">
             <textarea
               value={description}
