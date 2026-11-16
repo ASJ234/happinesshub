@@ -1,11 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Smartphone } from "lucide-react";
 import { Alert } from "@/components/ui/Alert";
-import { Field } from "@/components/ui/Field";
-import { inputLargeClass, submitButtonClass } from "@/components/ui/styles";
+import { PhoneField } from "@/components/ui/PhoneField";
+import { submitButtonClass } from "@/components/ui/styles";
+import { phoneProblem } from "@/lib/phone";
 import type { SubscriptionState } from "@/lib/subscriptions";
 import { formatUgx, type SubscriptionPlan } from "@/lib/videos";
 
@@ -24,6 +25,8 @@ const INTRO: Partial<Record<SubscriptionState, string>> = {
 export function MarzPayForm({ plan, state }: MarzPayFormProps) {
   const router = useRouter();
   const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const phoneRef = useRef<HTMLInputElement>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,7 +34,13 @@ export function MarzPayForm({ plan, state }: MarzPayFormProps) {
     event.preventDefault();
     setError(null);
     if (!plan) return setError("Choose a subscription plan.");
-    if (!phone.trim()) return setError("Enter the number to pay from.");
+    const problem = phoneProblem(phone);
+    if (problem) {
+      setPhoneError(problem);
+      phoneRef.current?.focus();
+      phoneRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
     if (submitting) return;
 
     setSubmitting(true);
@@ -52,6 +61,7 @@ export function MarzPayForm({ plan, state }: MarzPayFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
+      noValidate
       className="bg-surface border border-border rounded-xl p-6 max-w-lg"
     >
       <div className="flex items-center gap-2 mb-1">
@@ -64,16 +74,17 @@ export function MarzPayForm({ plan, state }: MarzPayFormProps) {
       </p>
 
       <div className="space-y-4">
-        <Field label="MTN or Airtel number" hint="e.g. 0772123456">
-          <input
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            className={inputLargeClass}
-          />
-        </Field>
+        <PhoneField
+          ref={phoneRef}
+          label="MTN or Airtel number"
+          value={phone}
+          onChange={(value) => {
+            setPhone(value);
+            setPhoneError(null);
+          }}
+          error={phoneError}
+          large
+        />
 
         {error && <Alert tone="error">{error}</Alert>}
 

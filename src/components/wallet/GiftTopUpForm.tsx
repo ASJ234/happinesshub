@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Alert } from "@/components/ui/Alert";
-import { Field } from "@/components/ui/Field";
-import { inputClass, primaryButtonClass } from "@/components/ui/styles";
+import { PhoneField } from "@/components/ui/PhoneField";
+import { primaryButtonClass } from "@/components/ui/styles";
+import { phoneProblem } from "@/lib/phone";
 import type { GiftTopUpState } from "@/lib/gift-topups";
 import { formatUgx } from "@/lib/videos";
 import { GiftTopUpPending } from "./GiftTopUpPending";
@@ -17,6 +18,8 @@ export function GiftTopUpForm({ topUp }: GiftTopUpFormProps) {
   const { packages, pending } = topUp;
   const [packageId, setPackageId] = useState(packages[0]?.id ?? "");
   const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const phoneRef = useRef<HTMLInputElement>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const selected = packages.find((p) => p.id === packageId) ?? null;
@@ -30,7 +33,13 @@ export function GiftTopUpForm({ topUp }: GiftTopUpFormProps) {
     event.preventDefault();
     setError(null);
     if (!selected) return setError("Choose an amount.");
-    if (!phone.trim()) return setError("Enter the number you'll pay from.");
+    const problem = phoneProblem(phone);
+    if (problem) {
+      setPhoneError(problem);
+      phoneRef.current?.focus();
+      phoneRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
 
     setBusy(true);
     const response = await fetch("/api/gifts/payment-link", {
@@ -48,7 +57,7 @@ export function GiftTopUpForm({ topUp }: GiftTopUpFormProps) {
   }
 
   return (
-    <form onSubmit={pay} className="bg-surface border border-border rounded-2xl p-5 space-y-4">
+    <form onSubmit={pay} noValidate className="bg-surface border border-border rounded-2xl p-5 space-y-4">
       <div>
         <h2 className="font-semibold">Top up gift credit</h2>
         <p className="text-xs text-muted mt-1">
@@ -80,16 +89,16 @@ export function GiftTopUpForm({ topUp }: GiftTopUpFormProps) {
             ))}
           </div>
 
-          <Field label="Number you'll pay from" hint="e.g. 0772123456">
-            <input
-              type="tel"
-              inputMode="tel"
-              autoComplete="tel"
-              value={phone}
-              onChange={(e) => setPhone(e.target.value)}
-              className={inputClass}
-            />
-          </Field>
+          <PhoneField
+            ref={phoneRef}
+            label="Number you'll pay from"
+            value={phone}
+            onChange={(value) => {
+              setPhone(value);
+              setPhoneError(null);
+            }}
+            error={phoneError}
+          />
 
           <Alert tone="info">
             <b>Important:</b> pay from the same number you type here. If you pay
