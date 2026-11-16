@@ -76,6 +76,8 @@ export interface SubscriptionPlan {
   amount: number;
   duration_days: number;
   sort_order: number;
+  /** MarzPay payment link subscribers are sent to; null until an admin sets it. */
+  payment_link: string | null;
 }
 
 export async function fetchSubscriptionPlans(

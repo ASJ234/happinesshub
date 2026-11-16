@@ -9,6 +9,7 @@ import { SubscriptionPanel } from "@/components/subscription/SubscriptionPanel";
 import { StatCard } from "@/components/ui/StatCard";
 import { GiftTopUpForm } from "@/components/wallet/GiftTopUpForm";
 import { money } from "@/lib/wallet";
+import { paymentMode } from "@/lib/payment-links";
 import { subscriptionState, type SubscriptionRecord } from "@/lib/subscriptions";
 
 export default async function SubscriptionPage() {
@@ -72,6 +73,7 @@ export default async function SubscriptionPage() {
       <SubscriptionPanel
         latest={latest}
         plans={plans}
+        mode={paymentMode()}
         state={state}
       />
 

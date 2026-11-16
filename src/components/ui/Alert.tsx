@@ -1,8 +1,8 @@
 import type { ReactNode } from "react";
-import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Info } from "lucide-react";
 
 interface AlertProps {
-  tone: "error" | "success";
+  tone: "error" | "success" | "info";
   children: ReactNode;
 }
 
@@ -14,6 +14,10 @@ const TONES = {
   success: {
     icon: CheckCircle2,
     className: "text-green-400 bg-green-500/10 border-green-500/30",
+  },
+  info: {
+    icon: Info,
+    className: "text-yellow-300 bg-yellow-500/10 border-yellow-500/30",
   },
 } as const;
 

@@ -2,10 +2,13 @@
 
 import { useState } from "react";
 import { CheckCircle2, Clock } from "lucide-react";
+import type { PaymentMode } from "@/lib/payment-links";
 import type { SubscriptionRecord, SubscriptionState } from "@/lib/subscriptions";
 import { formatUgx, type SubscriptionPlan } from "@/lib/videos";
 import { MarzPayForm } from "./MarzPayForm";
 import { MarzPayPending } from "./MarzPayPending";
+import { PaymentLinkForm } from "./PaymentLinkForm";
+import { PaymentLinkPending } from "./PaymentLinkPending";
 import { PlanPicker } from "./PlanPicker";
 import { StatusCard } from "./StatusCard";
 
@@ -13,6 +16,8 @@ interface SubscriptionPanelProps {
   latest: SubscriptionRecord | null;
   plans: SubscriptionPlan[];
   state: SubscriptionState;
+  /** "api": a prompt straight to the phone; "link": MarzPay's payment page. */
+  mode: PaymentMode;
 }
 
 function Notice({ children }: { children: React.ReactNode }) {
@@ -37,6 +42,7 @@ export function SubscriptionPanel({
   latest,
   plans,
   state,
+  mode,
 }: SubscriptionPanelProps) {
   const [selectedPlanId, setSelectedPlanId] = useState(plans[0]?.id ?? "");
   const selectedPlan = plans.find((p) => p.id === selectedPlanId) ?? null;
@@ -77,7 +83,17 @@ export function SubscriptionPanel({
     );
   }
 
-  if (state === "pending" && latest?.method !== "marzpay" && latest) {
+  if (state === "pending" && latest?.method === "link") {
+    return (
+      <PaymentLinkPending
+        latest={latest}
+        planName={latestPlan?.name ?? latest.plan_id}
+        paymentLink={latestPlan?.payment_link ?? null}
+      />
+    );
+  }
+
+  if (state === "pending" && latest?.method === "manual") {
     return (
       <StatusCard
         tone="yellow"
@@ -100,8 +116,9 @@ export function SubscriptionPanel({
       <div>
         <h2 className="font-semibold mb-1">Choose your plan</h2>
         <p className="text-sm text-muted mb-4">
-          Your padlocks open as soon as you approve the payment on your phone,
-          and stay open until the plan expires.
+          {mode === "api"
+            ? "Your padlocks open as soon as you approve the payment on your phone, and stay open until the plan expires."
+            : "Your padlocks open once your payment is confirmed, and stay open until the plan expires."}
         </p>
         <PlanPicker
           plans={plans}
@@ -110,7 +127,11 @@ export function SubscriptionPanel({
         />
       </div>
 
-      <MarzPayForm plan={selectedPlan} state={state} />
+      {mode === "api" ? (
+        <MarzPayForm plan={selectedPlan} state={state} />
+      ) : (
+        <PaymentLinkForm plan={selectedPlan} state={state} />
+      )}
     </div>
   );
 }
