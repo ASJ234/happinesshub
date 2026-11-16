@@ -1,4 +1,4 @@
-# HAPPYPORN.COM
+# HAPPYPORNUG.COM
 
 Adult content platform built with Next.js (App Router) and Supabase.
 

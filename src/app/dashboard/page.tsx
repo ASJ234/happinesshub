@@ -13,7 +13,7 @@ export default async function DashboardPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-2xl font-bold mb-1">
-          {isSignedIn ? `Welcome back, ${firstName}` : "Welcome to HAPPYPORN.COM"}
+          {isSignedIn ? `Welcome back, ${firstName}` : "Welcome to HAPPYPORNUG.COM"}
         </h1>
         <p className="text-muted text-sm">
           {isSignedIn
@@ -26,7 +26,7 @@ export default async function DashboardPage() {
 
       {!isCreator && (
         <div className="bg-surface border border-border rounded-2xl p-8 text-center">
-          <h2 className="text-lg font-semibold mb-2">Explore HAPPYPORN.COM</h2>
+          <h2 className="text-lg font-semibold mb-2">Explore HAPPYPORNUG.COM</h2>
           <p className="text-muted text-sm max-w-md mx-auto">
             {isSignedIn
               ? "Browse videos, live streams, and the latest clips below. Upgrade to a Creator account to upload videos and access studio tools."
@@ -37,7 +37,7 @@ export default async function DashboardPage() {
 
       <VideoSection
         title="Explore"
-        description="The latest videos across HAPPYPORN.COM"
+        description="The latest videos across HAPPYPORNUG.COM"
         href="/dashboard/explore"
         excludeCategories={["ugandan", "quickies"]}
       />

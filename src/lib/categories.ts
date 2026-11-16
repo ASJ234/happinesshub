@@ -17,7 +17,7 @@ export interface CategoryDefinition {
 }
 
 /**
- * The ten HAPPYPORN.COM sectors.
+ * The ten HAPPYPORNUG.COM sectors.
  *
  * This static list is the canonical source for navigation, labels and the
  * fallback paywall rules. The `public.categories` table mirrors it and lets an

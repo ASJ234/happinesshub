@@ -17,7 +17,7 @@ export function Logo({ size = "sm", showTagline = false }: LogoProps) {
       <span
         className={`${sizes[size]} font-black tracking-tight leading-none select-none`}
       >
-        <span className="text-foreground">HAPPYPORN</span>
+        <span className="text-foreground">HAPPYPORNUG</span>
         <span className="gradient-text">.COM</span>
       </span>
       {showTagline && (
