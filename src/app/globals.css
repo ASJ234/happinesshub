@@ -102,3 +102,12 @@ dialog.mobile-nav[open] {
     animation: none;
   }
 }
+
+@keyframes auth-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
