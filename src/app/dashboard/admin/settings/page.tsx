@@ -34,9 +34,9 @@ export default async function AdminSettingsPage() {
       <AdminSettingsPanel
         settings={
           settings ?? {
-            site_name: "HAPPYPORN.COM",
+            site_name: "HAPPYPORNUG.COM",
             support_whatsapp: "+256700000000",
-            support_message: "Hi, I need help with HAPPYPORN.COM",
+            support_message: "Hi, I need help with HAPPYPORNUG.COM",
             monthly_pool: 0,
             live_allowed_weekdays: [3, 5, 6, 7],
           }

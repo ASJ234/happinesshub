@@ -100,7 +100,7 @@ export default async function WatchPage({
           <h2 className="text-lg font-semibold mb-2">This video is locked</h2>
           <p className="text-sm text-muted mb-6">
             Pay the subscription fee to remove padlocks and watch every video
-            on HAPPYPORN.COM — including this one.
+            on HAPPYPORNUG.COM — including this one.
           </p>
           <Link
             href="/dashboard/subscription"
