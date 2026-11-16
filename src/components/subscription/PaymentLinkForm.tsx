@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Smartphone } from "lucide-react";
 import { Alert } from "@/components/ui/Alert";
-import { Field } from "@/components/ui/Field";
-import { inputLargeClass, submitButtonClass } from "@/components/ui/styles";
+import { PhoneField } from "@/components/ui/PhoneField";
+import { submitButtonClass } from "@/components/ui/styles";
+import { phoneProblem } from "@/lib/phone";
 import type { SubscriptionState } from "@/lib/subscriptions";
 import { formatUgx, type SubscriptionPlan } from "@/lib/videos";
 
@@ -22,6 +23,8 @@ const INTRO: Partial<Record<SubscriptionState, string>> = {
 /** Sends the subscriber to the plan's MarzPay payment page. */
 export function PaymentLinkForm({ plan, state }: PaymentLinkFormProps) {
   const [phone, setPhone] = useState("");
+  const [phoneError, setPhoneError] = useState<string | null>(null);
+  const phoneRef = useRef<HTMLInputElement>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -29,7 +32,13 @@ export function PaymentLinkForm({ plan, state }: PaymentLinkFormProps) {
     event.preventDefault();
     setError(null);
     if (!plan) return setError("Choose a subscription plan.");
-    if (!phone.trim()) return setError("Enter the number you'll pay from.");
+    const problem = phoneProblem(phone);
+    if (problem) {
+      setPhoneError(problem);
+      phoneRef.current?.focus();
+      phoneRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+      return;
+    }
     if (submitting) return;
 
     setSubmitting(true);
@@ -52,6 +61,7 @@ export function PaymentLinkForm({ plan, state }: PaymentLinkFormProps) {
   return (
     <form
       onSubmit={handleSubmit}
+      noValidate
       className="bg-surface border border-border rounded-xl p-6 max-w-lg"
     >
       <div className="flex items-center gap-2 mb-1">
@@ -64,16 +74,17 @@ export function PaymentLinkForm({ plan, state }: PaymentLinkFormProps) {
       </p>
 
       <div className="space-y-4">
-        <Field label="Number you'll pay from" hint="e.g. 0772123456">
-          <input
-            type="tel"
-            inputMode="tel"
-            autoComplete="tel"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            className={inputLargeClass}
-          />
-        </Field>
+        <PhoneField
+          ref={phoneRef}
+          label="Number you'll pay from"
+          value={phone}
+          onChange={(value) => {
+            setPhone(value);
+            setPhoneError(null);
+          }}
+          error={phoneError}
+          large
+        />
 
         <Alert tone="info">
           <b>Important:</b> pay from the same number you type here. If you pay
