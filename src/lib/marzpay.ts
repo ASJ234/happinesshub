@@ -14,24 +14,74 @@ function authHeader(): string {
   return `Basic ${Buffer.from(`${key}:${secret}`).toString("base64")}`;
 }
 
-async function marzFetch(path: string, init: RequestInit = {}): Promise<unknown> {
-  const response = await fetch(`${API_BASE}${path}`, {
-    ...init,
-    headers: {
-      Authorization: authHeader(),
-      Accept: "application/json",
-      "Content-Type": "application/json",
-      ...init.headers,
-    },
-    cache: "no-store",
-    signal: AbortSignal.timeout(20_000),
-  });
+/** A request MarzPay answered with an error, or could not be reached for. */
+export class MarzPayError extends Error {
+  constructor(
+    message: string,
+    /** HTTP status; 0 when MarzPay could not be reached. */
+    readonly status: number,
+    readonly code: string | null = null,
+    /** Field validation messages, e.g. { phone_number: ["..."] }. */
+    readonly fieldErrors: Record<string, string[]> = {}
+  ) {
+    super(message);
+    this.name = "MarzPayError";
+  }
 
-  const body = await response.json().catch(() => null);
+  /** Every message MarzPay gave, in one line. */
+  get detail(): string {
+    const fields = Object.values(this.fieldErrors).flat();
+    return [this.message, ...fields].filter(Boolean).join(" ");
+  }
+}
+
+async function marzFetch(path: string, init: RequestInit = {}): Promise<unknown> {
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      ...init,
+      headers: {
+        Authorization: authHeader(),
+        Accept: "application/json",
+        "Content-Type": "application/json",
+        ...init.headers,
+      },
+      cache: "no-store",
+      signal: AbortSignal.timeout(20_000),
+    });
+  } catch (error) {
+    throw new MarzPayError(`Could not reach MarzPay (${String(error)})`, 0);
+  }
+
+  const text = await response.text();
+  let body: unknown = null;
+  try {
+    body = text ? JSON.parse(text) : null;
+  } catch {
+    // Not JSON, e.g. a firewall or gateway page.
+  }
+
   if (!response.ok) {
-    const message =
-      (body as { message?: string } | null)?.message ?? `HTTP ${response.status}`;
-    throw new Error(`MarzPay ${path}: ${message}`);
+    const envelope = (body ?? {}) as {
+      message?: string;
+      error_code?: string;
+      errors?: Record<string, string[] | string>;
+    };
+    const fieldErrors = Object.fromEntries(
+      Object.entries(envelope.errors ?? {}).map(([field, messages]) => [
+        field,
+        Array.isArray(messages) ? messages.map(String) : [String(messages)],
+      ])
+    );
+    console.error(
+      `[marzpay] ${init.method ?? "GET"} ${path} -> HTTP ${response.status}: ${text.slice(0, 500)}`
+    );
+    throw new MarzPayError(
+      envelope.message ?? `MarzPay answered HTTP ${response.status}`,
+      response.status,
+      envelope.error_code ?? null,
+      fieldErrors
+    );
   }
   return body;
 }

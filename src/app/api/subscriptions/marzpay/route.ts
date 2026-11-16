@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { collectMoney, isMarzPayConfigured, normalizeUgPhone } from "@/lib/marzpay";
+import {
+  collectMoney,
+  isMarzPayConfigured,
+  MarzPayError,
+  normalizeUgPhone,
+} from "@/lib/marzpay";
 import {
   MARZPAY_ROW_COLUMNS,
   syncMarzPaySubscription,
@@ -29,6 +34,30 @@ async function latestPending(admin: ReturnType<typeof createAdminClient>, userId
     .eq("status", "pending")
     .maybeSingle();
   return data as (MarzPaySubscriptionRow & { method: string; created_at: string }) | null;
+}
+
+/**
+ * What to tell the subscriber when MarzPay refuses a charge: MarzPay's own
+ * reason (it never contains secrets), plus a setup hint for admins.
+ */
+function collectErrorMessage(error: unknown, isAdmin: boolean): string {
+  if (!(error instanceof MarzPayError)) {
+    return "MarzPay could not send the payment prompt. Try again in a moment.";
+  }
+  if (error.status === 422 || error.status === 400) {
+    return `MarzPay: ${error.detail}`;
+  }
+
+  const hint = !isAdmin
+    ? ""
+    : error.status === 401
+      ? " Check MARZPAY_API_KEY and MARZPAY_API_SECRET (live keys, no spaces)."
+      : error.status === 403
+        ? " The MarzPay account may lack collection permission, need IP whitelisting, or be frozen."
+        : error.status === 0
+          ? " The server could not reach wallet.wearemarz.com."
+          : "";
+  return `Payment could not start — MarzPay said: ${error.detail} (HTTP ${error.status}).${hint}`;
 }
 
 /** Sends a MarzPay payment prompt for the chosen plan to the subscriber's phone. */
@@ -154,7 +183,7 @@ export async function POST(request: Request) {
       .update({ status: "failed", reviewed_at: new Date().toISOString() })
       .eq("id", row.id);
     return NextResponse.json(
-      { error: "MarzPay could not send the payment prompt. Check the number and try again." },
+      { error: collectErrorMessage(error, user.role === "admin") },
       { status: 502 }
     );
   }
