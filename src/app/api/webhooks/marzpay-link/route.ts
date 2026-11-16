@@ -16,13 +16,15 @@ export const runtime = "nodejs";
 export async function POST(request: Request) {
   const rawBody = Buffer.from(await request.arrayBuffer());
   const signatureHeader = request.headers.get("x-marzpay-signature");
+  // Unsigned or badly signed callbacks are still recorded (MarzPay may not
+  // sign payment-link callbacks), but they never open anything by themselves.
   const signed =
     Boolean(process.env.MARZPAY_WEBHOOK_SECRET) &&
     verifyMarzPaySignature(rawBody, signatureHeader);
-
-  if (process.env.MARZPAY_WEBHOOK_SECRET && !signed) {
-    console.warn("[marzpay-link] callback rejected: invalid signature");
-    return NextResponse.json({ error: "Invalid signature" }, { status: 401 });
+  if (!signed) {
+    console.warn(
+      `[marzpay-link] callback not verified (${signatureHeader ? "bad signature" : "no signature"})`
+    );
   }
 
   let payload: unknown;
