@@ -45,6 +45,7 @@ MARZPAY_API_KEY=...
 MARZPAY_API_SECRET=...
 MARZPAY_WEBHOOK_SECRET=...           # optional: "Sign outgoing webhooks" secret
 MARZPAY_CALLBACK_URL=...             # optional: defaults to https://<host>/api/webhooks/marzpay
+MARZPAY_PROXY_URL=...                # static-IP proxy, needed on Vercel (see below)
 ```
 
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` is accepted as a fallback for the publishable key.
@@ -180,6 +181,13 @@ Setup: copy the API key and secret from the MarzPay dashboard. The live site
 must be on https so MarzPay can reach the webhook (localhost relies on polling).
 For signed callbacks, turn on **Business Settings → Webhooks & Security →
 Sign outgoing webhooks** and set `MARZPAY_WEBHOOK_SECRET`.
+
+**IP whitelist.** MarzPay only accepts API calls from IPs added under
+**Dashboard → IP Whitelist**. Vercel has no fixed outgoing IP, so on Vercel set
+`MARZPAY_PROXY_URL` to a static-IP proxy (QuotaGuard Static, Fixie, or a small
+VPS running a proxy), formatted `http://user:pass@host:port`, and whitelist the
+proxy's IPs. Only MarzPay calls use the proxy. On a server with a fixed IP,
+leave it unset and whitelist the server's IP instead.
 
 Manual deposits from before MarzPay can still be approved on the Admin Panel.
 Gift-credit top-ups are still manual.
