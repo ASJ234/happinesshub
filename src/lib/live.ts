@@ -150,8 +150,11 @@ export function liveCreatorLabel(stream: LiveStreamRow): string {
   return stream.creator?.display_name || stream.creator?.username || "Unknown";
 }
 
-/** The weekdays creators may go live on, using the same numbering as the DB. */
-export const LIVE_ALLOWED_WEEKDAYS: readonly number[] = [3, 5, 6, 7];
+/**
+ * Used only when app_settings has no live days saved, matching the database
+ * default. The real list is what admins tick in Settings: use fetchLiveDays().
+ */
+export const DEFAULT_LIVE_WEEKDAYS: readonly number[] = [3, 5, 6, 7];
 
 export const WEEKDAY_NAMES: readonly string[] = [
   "Monday",
@@ -163,13 +166,20 @@ export const WEEKDAY_NAMES: readonly string[] = [
   "Sunday",
 ];
 
-/** True when the ISO weekday (1 = Monday) is an allowed live day. */
-export function isLiveDay(isoWeekday: number): boolean {
-  return LIVE_ALLOWED_WEEKDAYS.includes(isoWeekday);
+/** The ISO weekdays (1 = Monday) creators may go live on, as admins set them. */
+export async function fetchLiveDays(supabase: SupabaseClient): Promise<number[]> {
+  const { data, error } = await supabase
+    .from("app_settings")
+    .select("live_allowed_weekdays")
+    .eq("id", true)
+    .maybeSingle();
+  if (error) console.warn(`[live] live days fetch failed: ${error.message}`);
+  return (data?.live_allowed_weekdays as number[] | null) ?? [...DEFAULT_LIVE_WEEKDAYS];
 }
 
-export function liveDaySummary(): string {
-  return LIVE_ALLOWED_WEEKDAYS.map((day) => WEEKDAY_NAMES[day - 1]).join(
-    ", "
-  );
+/** "Wednesday, Friday and Sunday". */
+export function liveDaysLabel(days: readonly number[]): string {
+  const names = [...days].sort().map((day) => WEEKDAY_NAMES[day - 1]);
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
