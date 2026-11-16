@@ -12,7 +12,8 @@ export interface SubscriptionRecord {
   paid_from: string;
   reference: string;
   note: string | null;
-  status: "pending" | "active" | "rejected";
+  status: "pending" | "active" | "rejected" | "failed";
+  method: "manual" | "marzpay";
   expires_at: string | null;
   created_at: string;
 }
@@ -21,6 +22,7 @@ export type SubscriptionState =
   | "active"
   | "pending"
   | "rejected"
+  | "failed"
   | "expired"
   | "none";
 
@@ -36,5 +38,9 @@ export function subscriptionState(
       ? "active"
       : "expired";
   }
+  if (latest.status === "failed") return "failed";
   return "rejected";
 }
+
+/** A MarzPay prompt the customer has not answered by now counts as abandoned. */
+export const MARZPAY_STALE_MS = 3 * 60_000;

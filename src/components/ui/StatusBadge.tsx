@@ -8,6 +8,7 @@ const STATUS_STYLES: Record<string, string> = {
   Pending: "bg-yellow-500/20 text-yellow-400",
   "Pending review": "bg-yellow-500/20 text-yellow-400",
   Rejected: "bg-red-500/20 text-red-400",
+  Failed: "bg-red-500/20 text-red-400",
   "Not Verified": "bg-red-500/20 text-red-400",
   Banned: "bg-red-500/20 text-red-400",
   Viewer: "bg-primary/20 text-primary",

@@ -2,19 +2,14 @@
 
 import { useState } from "react";
 import { CheckCircle2, Clock } from "lucide-react";
-import type {
-  PaymentSettings,
-  SubscriptionRecord,
-  SubscriptionState,
-} from "@/lib/subscriptions";
+import type { SubscriptionRecord, SubscriptionState } from "@/lib/subscriptions";
 import { formatUgx, type SubscriptionPlan } from "@/lib/videos";
-import { DepositForm } from "./DepositForm";
-import { PaymentDetails } from "./PaymentDetails";
+import { MarzPayForm } from "./MarzPayForm";
+import { MarzPayPending } from "./MarzPayPending";
 import { PlanPicker } from "./PlanPicker";
 import { StatusCard } from "./StatusCard";
 
 interface SubscriptionPanelProps {
-  settings: PaymentSettings | null;
   latest: SubscriptionRecord | null;
   plans: SubscriptionPlan[];
   state: SubscriptionState;
@@ -37,9 +32,8 @@ function formatExpiry(iso: string | null): string | null {
   })}`;
 }
 
-/** The viewer's subscription: its status, or the plan picker and deposit form. */
+/** The viewer's subscription: its status, or the plan picker and payment form. */
 export function SubscriptionPanel({
-  settings,
   latest,
   plans,
   state,
@@ -47,12 +41,9 @@ export function SubscriptionPanel({
   const [selectedPlanId, setSelectedPlanId] = useState(plans[0]?.id ?? "");
   const selectedPlan = plans.find((p) => p.id === selectedPlanId) ?? null;
   const latestPlan = plans.find((p) => p.id === latest?.plan_id) ?? null;
+  // The prompt the subscriber gave up on; a new one shows its own pending card.
+  const [abandonedId, setAbandonedId] = useState<string | null>(null);
 
-  if (!settings) {
-    return (
-      <Notice>Payment details have not been configured yet. Please check back soon.</Notice>
-    );
-  }
   if (plans.length === 0) {
     return (
       <Notice>Subscription plans are not configured yet. Please check back soon.</Notice>
@@ -76,7 +67,17 @@ export function SubscriptionPanel({
     );
   }
 
-  if (state === "pending" && latest) {
+  if (state === "pending" && latest?.method === "marzpay" && latest.id !== abandonedId) {
+    return (
+      <MarzPayPending
+        latest={latest}
+        planName={latestPlan?.name ?? latest.plan_id}
+        onRetry={() => setAbandonedId(latest.id)}
+      />
+    );
+  }
+
+  if (state === "pending" && latest?.method !== "marzpay" && latest) {
     return (
       <StatusCard
         tone="yellow"
@@ -99,8 +100,8 @@ export function SubscriptionPanel({
       <div>
         <h2 className="font-semibold mb-1">Choose your plan</h2>
         <p className="text-sm text-muted mb-4">
-          Your padlocks open as soon as an admin approves your deposit, and stay
-          open until the plan expires.
+          Your padlocks open as soon as you approve the payment on your phone,
+          and stay open until the plan expires.
         </p>
         <PlanPicker
           plans={plans}
@@ -109,10 +110,7 @@ export function SubscriptionPanel({
         />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <PaymentDetails settings={settings} plan={selectedPlan} />
-        <DepositForm plan={selectedPlan} state={state} />
-      </div>
+      <MarzPayForm plan={selectedPlan} state={state} />
     </div>
   );
 }
