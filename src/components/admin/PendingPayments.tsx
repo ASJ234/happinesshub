@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, XCircle } from "lucide-react";
+import { Ban, CheckCircle2, XCircle } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { formatDate, formatUgx } from "@/lib/videos";
 
@@ -13,7 +13,7 @@ export interface AdminSubscriptionRow {
   paid_from: string;
   reference: string;
   note: string | null;
-  status: "pending" | "active" | "rejected" | "failed";
+  status: "pending" | "active" | "rejected" | "failed" | "revoked";
   method: "manual" | "marzpay" | "link";
   plan_id: string;
   expires_at: string | null;
@@ -27,7 +27,23 @@ const STATUS_LABELS: Record<string, string> = {
   active: "Active",
   rejected: "Rejected",
   failed: "Failed",
+  revoked: "Revoked",
 };
+
+const DONE_MESSAGES = {
+  approve: "Approved — padlocks opened.",
+  reject: "Request rejected.",
+  revoke: "Subscription revoked — padlocks closed.",
+} as const;
+
+type ReviewAction = keyof typeof DONE_MESSAGES;
+
+function isRunning(row: AdminSubscriptionRow): boolean {
+  return (
+    row.status === "active" &&
+    (!row.expires_at || new Date(row.expires_at).getTime() > Date.now())
+  );
+}
 
 interface PendingPaymentsProps {
   requests: AdminSubscriptionRow[];
@@ -38,7 +54,15 @@ export function PendingPayments({ requests }: PendingPaymentsProps) {
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
 
-  async function review(id: string, action: "approve" | "reject") {
+  async function review(row: AdminSubscriptionRow, action: ReviewAction) {
+    const id = row.id;
+    if (action === "revoke") {
+      const who = row.user?.display_name || row.user?.username || "this user";
+      const ok = window.confirm(
+        `Revoke ${who}'s ${formatUgx(row.amount)} subscription? Their padlocks close straight away. This can't be undone.`
+      );
+      if (!ok) return;
+    }
     setBusyId(id);
     setMessage(null);
 
@@ -56,7 +80,7 @@ export function PendingPayments({ requests }: PendingPaymentsProps) {
       return;
     }
 
-    setMessage(action === "approve" ? "Approved — padlocks opened." : "Request rejected.");
+    setMessage(DONE_MESSAGES[action]);
     router.refresh();
   }
 
@@ -132,7 +156,7 @@ export function PendingPayments({ requests }: PendingPaymentsProps) {
                 ) : row.status === "pending" ? (
                   <div className="flex items-center gap-3">
                     <button
-                      onClick={() => review(row.id, "approve")}
+                      onClick={() => review(row, "approve")}
                       disabled={busyId === row.id}
                       className="inline-flex items-center gap-1 text-xs text-green-400 hover:text-green-300 font-medium disabled:opacity-50"
                     >
@@ -140,7 +164,7 @@ export function PendingPayments({ requests }: PendingPaymentsProps) {
                       Approve
                     </button>
                     <button
-                      onClick={() => review(row.id, "reject")}
+                      onClick={() => review(row, "reject")}
                       disabled={busyId === row.id}
                       className="inline-flex items-center gap-1 text-xs text-red-400 hover:text-red-300 font-medium disabled:opacity-50"
                     >
@@ -148,6 +172,15 @@ export function PendingPayments({ requests }: PendingPaymentsProps) {
                       Reject
                     </button>
                   </div>
+                ) : isRunning(row) ? (
+                  <button
+                    onClick={() => review(row, "revoke")}
+                    disabled={busyId === row.id}
+                    className="inline-flex items-center gap-1 text-xs text-red-400 hover:text-red-300 font-medium disabled:opacity-50"
+                  >
+                    <Ban size={13} />
+                    Revoke
+                  </button>
                 ) : (
                   <span className="text-xs text-muted">
                     {row.reviewed_at ? formatDate(row.reviewed_at) : "—"}
