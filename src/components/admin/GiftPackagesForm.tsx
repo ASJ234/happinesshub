@@ -4,7 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Save, Trash2 } from "lucide-react";
 import { inputClass, primaryButtonClass } from "@/components/ui/styles";
+import { useConfirm } from "@/components/ui/useConfirm";
 import type { GiftTopUpPackage } from "@/lib/gift-topups";
+import { formatUgx } from "@/lib/videos";
 
 interface GiftPackagesFormProps {
   packages: GiftTopUpPackage[];
@@ -28,6 +30,7 @@ async function send(method: string, body: object): Promise<string | null> {
 /** One package: its amount and MarzPay link. Without `pack` it adds a new one. */
 function PackageRow({ pack }: { pack?: GiftTopUpPackage }) {
   const router = useRouter();
+  const { ask, dialog } = useConfirm();
   const [amount, setAmount] = useState(pack ? String(pack.amount) : "");
   const [link, setLink] = useState(pack?.payment_link ?? "");
   const [busy, setBusy] = useState(false);
@@ -52,17 +55,21 @@ function PackageRow({ pack }: { pack?: GiftTopUpPackage }) {
     router.refresh();
   }
 
-  async function remove() {
-    if (!pack || !confirm(`Remove the UGX ${pack.amount.toLocaleString()} top-up?`)) return;
-    setBusy(true);
-    const error = await send("DELETE", { id: pack.id });
-    setBusy(false);
-    if (error) return setMessage({ ok: false, text: error });
-    router.refresh();
+  function remove() {
+    if (!pack) return;
+    ask({
+      title: `Remove the ${formatUgx(pack.amount)} top-up?`,
+      description:
+        "Users won't be able to buy this amount any more. Top-ups already paid aren't affected.",
+      confirmLabel: "Remove top-up",
+      busyLabel: "Removing…",
+      action: () => send("DELETE", { id: pack.id }),
+    });
   }
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-[8rem_1fr_auto] gap-2 sm:items-center">
+      {dialog}
       <input
         type="number"
         min={500}

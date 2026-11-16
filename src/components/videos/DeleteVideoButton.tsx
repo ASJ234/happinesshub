@@ -1,56 +1,42 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Trash2 } from "lucide-react";
+import { useConfirm } from "@/components/ui/useConfirm";
+import { sendDelete } from "@/lib/fetch-error";
 
 interface DeleteVideoButtonProps {
   videoId: string;
+  /** Named in the confirmation, when known. */
+  title?: string;
 }
 
-export function DeleteVideoButton({ videoId }: DeleteVideoButtonProps) {
-  const router = useRouter();
-  const [deleting, setDeleting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleDelete() {
-    if (
-      !window.confirm(
-        "Delete this video permanently? The video file will be removed too."
-      )
-    ) {
-      return;
-    }
-
-    setDeleting(true);
-    setError(null);
-
-    const response = await fetch(`/api/videos/${videoId}`, {
-      method: "DELETE",
-    });
-
-    setDeleting(false);
-
-    if (!response.ok) {
-      const body = await response.json().catch(() => null);
-      setError(body?.error ?? "Could not delete video");
-      return;
-    }
-
-    router.refresh();
-  }
+export function DeleteVideoButton({ videoId, title }: DeleteVideoButtonProps) {
+  const { ask, dialog } = useConfirm();
 
   return (
-    <span className="inline-flex flex-col gap-1">
+    <>
       <button
-        onClick={handleDelete}
-        disabled={deleting}
-        className="inline-flex items-center gap-1 text-xs text-red-400 hover:text-red-300 font-medium disabled:opacity-50"
+        type="button"
+        onClick={() =>
+          ask({
+            title: "Delete this video?",
+            description: (
+              <>
+                {title && <span className="text-foreground font-medium">“{title}” </span>}
+                will be removed permanently, with its video file, views and
+                comments. This can&apos;t be undone.
+              </>
+            ),
+            confirmLabel: "Delete video",
+            action: () => sendDelete(`/api/videos/${videoId}`, "Could not delete the video"),
+          })
+        }
+        className="inline-flex items-center gap-1 text-xs text-red-400 hover:text-red-300 font-medium"
       >
         <Trash2 size={13} />
-        {deleting ? "Deleting..." : "Delete"}
+        Delete
       </button>
-      {error && <span className="text-[11px] text-red-400">{error}</span>}
-    </span>
+      {dialog}
+    </>
   );
 }

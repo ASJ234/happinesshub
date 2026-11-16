@@ -200,7 +200,7 @@ export default async function AdminPage() {
                     {formatDate(video.created_at)}
                   </td>
                   <td className="p-4">
-                    <DeleteVideoButton videoId={video.id} />
+                    <DeleteVideoButton videoId={video.id} title={video.title} />
                   </td>
                 </tr>
               ))}

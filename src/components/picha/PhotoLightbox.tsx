@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Trash2, X } from "lucide-react";
-import { Spinner } from "@/components/ui/Spinner";
+import { useConfirm } from "@/components/ui/useConfirm";
 import type { PichaPhoto } from "@/lib/picha";
 
 interface PhotoLightboxProps {
@@ -11,7 +11,8 @@ interface PhotoLightboxProps {
   onIndexChange: (index: number) => void;
   onClose: () => void;
   canDelete: (photo: PichaPhoto) => boolean;
-  onDelete: (photo: PichaPhoto) => Promise<void>;
+  /** Returns a message when the delete fails. */
+  onDelete: (photo: PichaPhoto) => Promise<string | null>;
 }
 
 const SWIPE_PX = 50;
@@ -27,13 +28,14 @@ export function PhotoLightbox({
 }: PhotoLightboxProps) {
   const photo = photos[index];
   const touchStart = useRef<number | null>(null);
-  const [deleting, setDeleting] = useState(false);
+  const { ask, dialog, isOpen: confirming } = useConfirm();
   const [loaded, setLoaded] = useState<string | null>(null);
   const hasPrev = index > 0;
   const hasNext = index < photos.length - 1;
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
+      if (confirming) return; // the dialog handles its own keys
       if (event.key === "Escape") onClose();
       if (event.key === "ArrowLeft" && index > 0) onIndexChange(index - 1);
       if (event.key === "ArrowRight" && index < photos.length - 1) onIndexChange(index + 1);
@@ -45,15 +47,19 @@ export function PhotoLightbox({
       window.removeEventListener("keydown", onKey);
       document.body.style.overflow = previous;
     };
-  }, [index, photos.length, onClose, onIndexChange]);
+  }, [index, photos.length, onClose, onIndexChange, confirming]);
 
   if (!photo) return null;
 
-  async function remove() {
-    if (!confirm("Delete this photo from Picha?")) return;
-    setDeleting(true);
-    await onDelete(photo);
-    setDeleting(false);
+  function remove() {
+    const target = photo;
+    ask({
+      title: "Delete this photo?",
+      description: "It will be removed from Picha for everyone. This can't be undone.",
+      confirmLabel: "Delete photo",
+      refresh: false, // the gallery removes it straight away
+      action: () => onDelete(target),
+    });
   }
 
   const navButton =
@@ -67,13 +73,14 @@ export function PhotoLightbox({
       className="fixed inset-0 z-[90] bg-black/95 flex flex-col"
       onTouchStart={(e) => (touchStart.current = e.touches[0].clientX)}
       onTouchEnd={(e) => {
-        if (touchStart.current === null) return;
+        if (touchStart.current === null || confirming) return;
         const delta = e.changedTouches[0].clientX - touchStart.current;
         touchStart.current = null;
         if (delta > SWIPE_PX && hasPrev) onIndexChange(index - 1);
         if (delta < -SWIPE_PX && hasNext) onIndexChange(index + 1);
       }}
     >
+      {dialog}
       <div className="flex items-center gap-3 px-4 h-14 text-white shrink-0">
         <div className="min-w-0 flex-1">
           <p className="text-sm font-medium truncate">{photo.uploader}</p>
@@ -84,11 +91,10 @@ export function PhotoLightbox({
         {canDelete(photo) && (
           <button
             onClick={remove}
-            disabled={deleting}
             aria-label="Delete photo"
-            className="p-2 rounded-full hover:bg-white/10 text-red-400 disabled:opacity-50"
+            className="p-2 rounded-full hover:bg-white/10 text-red-400"
           >
-            {deleting ? <Spinner size={20} /> : <Trash2 size={20} />}
+            <Trash2 size={20} />
           </button>
         )}
         <button

@@ -11,7 +11,8 @@ import {
   removeButtonClass,
 } from "@/components/ui/styles";
 import { getCategory } from "@/lib/categories";
-import { readError } from "@/lib/fetch-error";
+import { useConfirm } from "@/components/ui/useConfirm";
+import { readError, sendDelete } from "@/lib/fetch-error";
 import { deleteListing } from "@/lib/listing-actions";
 import { isServiceCategory, type ManagedListing } from "@/lib/listings";
 import { ItemManager } from "./ItemManager";
@@ -37,6 +38,7 @@ const PHOTO_KINDS = {
 /** Edits one profile: details, profile picture, photos, services/products. */
 export function ListingEditor({ listing, afterDeleteHref }: ListingEditorProps) {
   const router = useRouter();
+  const { ask, dialog } = useConfirm();
   const fileRef = useRef<HTMLInputElement>(null);
   const kindRef = useRef<string>("gallery");
 
@@ -103,32 +105,43 @@ export function ListingEditor({ listing, afterDeleteHref }: ListingEditorProps) 
     );
   }
 
-  function removePhoto(photoId: string) {
-    run(
-      fetch(`/api/listings/${listing.id}/photos?id=${photoId}`, { method: "DELETE" }),
-      "Photo removed",
-      "Could not remove the photo"
-    );
+  function removePhoto(photoId: string, kind: string) {
+    ask({
+      title: "Remove this photo?",
+      description:
+        kind === "avatar"
+          ? "Your profile picture will be removed from the profile."
+          : "The photo will be removed from the profile. This can't be undone.",
+      confirmLabel: "Remove photo",
+      busyLabel: "Removing…",
+      action: () =>
+        sendDelete(
+          `/api/listings/${listing.id}/photos?id=${photoId}`,
+          "Could not remove the photo"
+        ),
+    });
   }
 
-  async function remove() {
+  function remove() {
     const label = getCategory(listing.category)?.label ?? "profile";
-    if (
-      !window.confirm(
-        `Delete the ${label} profile "${listing.display_name}" with all its photos, services and products? This cannot be undone.`
-      )
-    ) {
-      return;
-    }
-
-    setBusy(true);
-    setError(null);
-    const problem = await deleteListing(listing.id);
-    setBusy(false);
-
-    if (problem) return setError(problem);
-    if (afterDeleteHref) router.push(afterDeleteHref);
-    router.refresh();
+    ask({
+      title: `Delete this ${label} profile?`,
+      description: (
+        <>
+          <span className="text-foreground font-medium">“{listing.display_name}”</span>{" "}
+          will be deleted with all its photos, services and products. This
+          can&apos;t be undone.
+        </>
+      ),
+      confirmLabel: "Delete profile",
+      // Leaving the page replaces the refresh when there's somewhere to go.
+      refresh: !afterDeleteHref,
+      action: async () => {
+        const problem = await deleteListing(listing.id);
+        if (!problem && afterDeleteHref) router.push(afterDeleteHref);
+        return problem;
+      },
+    });
   }
 
   function pickPhoto(kind: string) {
@@ -138,6 +151,7 @@ export function ListingEditor({ listing, afterDeleteHref }: ListingEditorProps) 
 
   return (
     <div className="bg-surface border border-border rounded-2xl p-5 space-y-5">
+      {dialog}
       <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h2 className="font-semibold">{getCategory(listing.category)?.label ?? listing.category}</h2>
@@ -237,7 +251,7 @@ export function ListingEditor({ listing, afterDeleteHref }: ListingEditorProps) 
                     </span>
                   )}
                   <button
-                    onClick={() => removePhoto(photo.id)}
+                    onClick={() => removePhoto(photo.id, photo.kind)}
                     disabled={busy}
                     className={`absolute top-1 right-1 ${removeButtonClass}`}
                     title="Remove photo"

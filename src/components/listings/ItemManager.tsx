@@ -3,7 +3,8 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ImagePlus, Plus, Trash2 } from "lucide-react";
-import { readError } from "@/lib/fetch-error";
+import { useConfirm } from "@/components/ui/useConfirm";
+import { readError, sendDelete } from "@/lib/fetch-error";
 import { ItemCard } from "./ItemCard";
 import type { ManagedListing } from "@/lib/listings";
 import {
@@ -25,6 +26,7 @@ const EMPTY_FORM = { title: "", description: "", price: "" };
 /** Lists a profile's services or products and adds new ones. */
 export function ItemManager({ listingId, items, isShop }: ItemManagerProps) {
   const router = useRouter();
+  const { ask, dialog } = useConfirm();
   const fileRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
@@ -67,12 +69,21 @@ export function ItemManager({ listingId, items, isShop }: ItemManagerProps) {
     }
   }
 
-  function removeItem(itemId: string) {
-    if (!window.confirm(`Remove this ${noun}?`)) return;
-    send(
-      fetch(`/api/listings/${listingId}/items?id=${itemId}`, { method: "DELETE" }),
-      `Could not remove the ${noun}`
-    );
+  function removeItem(itemId: string, name: string | null) {
+    ask({
+      title: `Remove this ${noun}?`,
+      description: (
+        <>
+          {name && <span className="text-foreground font-medium">“{name}” </span>}
+          will be removed from your {isShop ? "shop" : "profile"}, with its photo.
+          This can&apos;t be undone.
+        </>
+      ),
+      confirmLabel: `Remove ${noun}`,
+      busyLabel: "Removing…",
+      action: () =>
+        sendDelete(`/api/listings/${listingId}/items?id=${itemId}`, `Could not remove the ${noun}`),
+    });
   }
 
   const set = (key: keyof typeof EMPTY_FORM) =>
@@ -81,6 +92,7 @@ export function ItemManager({ listingId, items, isShop }: ItemManagerProps) {
 
   return (
     <div className="border-t border-border pt-5 space-y-4">
+      {dialog}
       <div>
         <h3 className="text-sm font-medium">{isShop ? "Products" : "Services"}</h3>
         <p className="text-xs text-muted mt-0.5">
@@ -102,7 +114,7 @@ export function ItemManager({ listingId, items, isShop }: ItemManagerProps) {
               description={item.description}
               corner={
                 <button
-                  onClick={() => removeItem(item.id)}
+                  onClick={() => removeItem(item.id, item.title)}
                   disabled={busy}
                   className={removeButtonClass}
                   title={`Remove ${noun}`}
