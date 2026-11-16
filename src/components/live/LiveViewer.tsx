@@ -8,6 +8,7 @@ import { LiveChat } from "@/components/live/LiveChat";
 import { GiftAlerts } from "./GiftAlerts";
 import { useLiveGiftFeed } from "./useLiveGiftFeed";
 import type { LiveChatMessage, LiveGift, LiveStreamRow } from "@/lib/live";
+import { compactMoney, money } from "@/lib/wallet";
 
 interface LiveViewerProps {
   stream: LiveStreamRow;
@@ -180,7 +181,7 @@ export function LiveViewer({
           <h1 className="font-semibold text-lg">{stream.title}</h1>
           <p className="text-sm text-muted mt-1">{stream.description}</p>
           <p className="text-xs text-muted mt-3">
-            {stream.viewers} watching · ${giftTotal.toFixed(2)} in gifts
+            {stream.viewers} watching · {money(giftTotal)} in gifts
           </p>
         </div>
       </div>
@@ -204,7 +205,7 @@ export function LiveViewer({
                 Send a gift
               </h2>
               <span className="text-xs text-muted">
-                Credit: ${balance.toFixed(2)}
+                Credit: {money(balance)}
               </span>
             </div>
 
@@ -217,11 +218,11 @@ export function LiveViewer({
                   onClick={() => sendGift(gift)}
                   disabled={sending || balance < gift.price}
                   className="flex flex-col items-center gap-1 rounded-lg border border-border bg-surface-elevated hover:border-primary/40 py-2 transition-colors disabled:opacity-40"
-                  title={`${gift.name} — $${gift.price.toFixed(2)}`}
+                  title={`${gift.name} — ${money(gift.price)}`}
                 >
                   <span className="text-lg leading-none">{gift.emoji}</span>
                   <span className="text-[10px] text-muted">
-                    ${gift.price.toFixed(0)}
+                    {compactMoney(gift.price)}
                   </span>
                 </button>
               ))}

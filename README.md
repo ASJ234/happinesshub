@@ -82,6 +82,7 @@ again. Each file ends with a `select` that shows what it created.
 | 24 | `0024_marzpay.sql` | `subscriptions.method`/`provider_reference`, the `failed` status, `marzpay_settle_subscription()` |
 | 25 | `0025_payment_links.sql` | `subscription_plans.payment_link`, the `link` method, `payment_link_events`, `match_link_payment()` |
 | 26 | `0026_gift_topup_links.sql` | `gift_topup_packages`, `gift_deposits.method`, the `cancelled` status, `match_gift_link_payment()` |
+| 27 | `0027_ugx_gift_prices.sql` | prices live gifts in UGX (Rose 500 … Rocket 50,000), adds 20,000 and 50,000 top-ups |
 
 ### Applying them without the SQL editor
 

@@ -122,6 +122,14 @@ export function transactionLabel(kind: WalletTransactionKind): string {
   }
 }
 
+/** An amount in Ugandan shillings, e.g. "UGX 12,500". */
 export function money(value: number): string {
-  return `$${value.toFixed(2)}`;
+  return `UGX ${Math.round(Number(value)).toLocaleString()}`;
+}
+
+/** A short amount for tight spaces, e.g. 500, 1K, 2.5K, 50K. */
+export function compactMoney(value: number): string {
+  const n = Number(value);
+  if (n < 1000) return Math.round(n).toLocaleString();
+  return `${Number((n / 1000).toFixed(1)).toLocaleString()}K`;
 }
