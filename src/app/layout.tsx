@@ -5,7 +5,7 @@ import { AGE_COOKIE } from "@/lib/age-gate";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "HAPPYPORN.COM - Pleasure. Passion. Privacy.",
+  title: "HAPPYPORNUG.COM - Pleasure. Passion. Privacy.",
   description: "Your premium video streaming and creator platform.",
 };
 
