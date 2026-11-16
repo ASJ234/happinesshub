@@ -85,6 +85,7 @@ again. Each file ends with a `select` that shows what it created.
 | 27 | `0027_ugx_gift_prices.sql` | prices live gifts in UGX (Rose 500 … Rocket 50,000), adds 20,000 and 50,000 top-ups |
 | 28 | `0028_picha_photos.sql` | `picha_photos` (the Picha photo wall), copies existing Picha profile photos into it |
 | 29 | `0029_withdrawal_fixes.sql` | per-creator `payout_accounts`, UGX 1,000 minimum, refunds no longer count as lifetime earnings, wallet locked during a withdrawal |
+| 30 | `0030_link_matching_newest.sql` | link payments go to the newest waiting request from that number; failed payments mark it failed |
 
 ### Applying them without the SQL editor
 
@@ -182,8 +183,9 @@ proxy is set (`MARZPAY_PROXY_URL`) or `MARZPAY_MODE=api`, in which case the
 3. An admin approves it on the Admin Panel once the money shows in MarzPay.
 4. Automatic approval: MarzPay posts to `/api/webhooks/marzpay-link`. When
    webhook signing is on (`MARZPAY_WEBHOOK_SECRET`) and the callback reports a
-   completed payment, `match_link_payment()` activates the oldest pending link
-   request from the last hour with the same number and a covered amount.
+   completed payment, `match_link_payment()` activates the newest waiting link
+   request from the last hour with the same number and a covered amount; a
+   failed payment marks that request failed (`fail_link_payment()`).
    Every callback is stored in `payment_link_events`; MarzPay does not
    document the payload, so check that table after the first real payment.
 
