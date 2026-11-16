@@ -11,6 +11,7 @@ import {
 } from "@/lib/wallet";
 import { inputClass } from "@/components/ui/styles";
 import { GiftTopUpForm } from "./GiftTopUpForm";
+import type { GiftTopUpState } from "@/lib/gift-topups";
 
 interface WalletPanelProps {
   balance: number;
@@ -20,7 +21,7 @@ interface WalletPanelProps {
   payoutMethod: string;
   payoutAccount: string;
   giftBalance: number;
-  payTo?: { account_name: string; phone_number: string } | null;
+  topUp: GiftTopUpState;
 }
 
 
@@ -32,7 +33,7 @@ export function WalletPanel({
   payoutMethod,
   payoutAccount,
   giftBalance,
-  payTo,
+  topUp,
 }: WalletPanelProps) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -168,7 +169,7 @@ export function WalletPanel({
           )}
         </div>
 
-        <GiftTopUpForm payTo={payTo} />
+        <GiftTopUpForm topUp={topUp} />
       </div>
 
       <div className="bg-surface border border-border rounded-2xl p-5">

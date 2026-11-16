@@ -1,110 +1,109 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { inputClass } from "@/components/ui/styles";
+import { Alert } from "@/components/ui/Alert";
+import { Field } from "@/components/ui/Field";
+import { inputClass, primaryButtonClass } from "@/components/ui/styles";
+import type { GiftTopUpState } from "@/lib/gift-topups";
+import { formatUgx } from "@/lib/videos";
+import { GiftTopUpPending } from "./GiftTopUpPending";
 
 interface GiftTopUpFormProps {
-  /** The account to pay, shown above the form when known. */
-  payTo?: { account_name: string; phone_number: string } | null;
+  topUp: GiftTopUpState;
 }
 
-/** Asks for gift credit: the viewer pays manually and an admin approves it. */
-export function GiftTopUpForm({ payTo }: GiftTopUpFormProps) {
-  const router = useRouter();
+/** Buys gift credit through a package's MarzPay payment link. */
+export function GiftTopUpForm({ topUp }: GiftTopUpFormProps) {
+  const { packages, pending } = topUp;
+  const [packageId, setPackageId] = useState(packages[0]?.id ?? "");
+  const [phone, setPhone] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
+  const selected = packages.find((p) => p.id === packageId) ?? null;
 
-  const [amount, setAmount] = useState("");
-  const [paidFrom, setPaidFrom] = useState("");
-  const [reference, setReference] = useState("");
+  if (pending) {
+    const link = packages.find((p) => p.amount === pending.amount)?.payment_link ?? null;
+    return <GiftTopUpPending pending={pending} paymentLink={link} />;
+  }
 
-  async function topUp() {
-    setBusy(true);
+  async function pay(event: React.FormEvent) {
+    event.preventDefault();
     setError(null);
-    setNotice(null);
+    if (!selected) return setError("Choose an amount.");
+    if (!phone.trim()) return setError("Enter the number you'll pay from.");
 
-    const response = await fetch("/api/gifts/deposit", {
+    setBusy(true);
+    const response = await fetch("/api/gifts/payment-link", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: Number(amount), paid_from: paidFrom, reference }),
-    });
+      body: JSON.stringify({ package_id: selected.id, phone }),
+    }).catch(() => null);
+    const body = await response?.json().catch(() => null);
 
-    const body = await response.json().catch(() => null);
-    setBusy(false);
-
-    if (!response.ok) {
-      setError(body?.error ?? "Could not send the top-up");
-      return;
+    if (!response?.ok || !body?.url) {
+      setBusy(false);
+      return setError(body?.error ?? "Could not start the top-up. Try again.");
     }
-
-    setNotice("Top-up sent. An admin approves it before the credit can be used.");
-    setAmount("");
-    setPaidFrom("");
-    setReference("");
-    router.refresh();
+    window.location.assign(body.url);
   }
 
   return (
-    <div className="bg-surface border border-border rounded-2xl p-5 space-y-4">
-      <h2 className="font-semibold">Top up gift credit</h2>
-      <p className="text-xs text-muted">
-        {payTo ? (
-          <>
-            Send the money to{" "}
-            <span className="text-foreground font-medium">{payTo.phone_number}</span>{" "}
-            ({payTo.account_name}), then enter the reference.
-          </>
-        ) : (
-          "Send the money to the account the site shows, then enter the reference."
-        )}{" "}
-        An admin approves the credit, and you can then send gifts during live streams.
-      </p>
-
+    <form onSubmit={pay} className="bg-surface border border-border rounded-2xl p-5 space-y-4">
       <div>
-        <label className="text-sm text-muted block mb-1.5">Amount</label>
-        <input
-          type="number"
-          min="1"
-          step="0.01"
-          value={amount}
-          onChange={(e) => setAmount(e.target.value)}
-          className={inputClass}
-        />
+        <h2 className="font-semibold">Top up gift credit</h2>
+        <p className="text-xs text-muted mt-1">
+          Pick an amount and pay with MTN or Airtel on MarzPay&apos;s secure page.
+          The credit is added once your payment is confirmed, and you can then
+          send gifts during live streams.
+        </p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        <div>
-          <label className="text-sm text-muted block mb-1.5">Paid from</label>
-          <input
-            type="text"
-            value={paidFrom}
-            onChange={(e) => setPaidFrom(e.target.value)}
-            className={inputClass}
-          />
-        </div>
-        <div>
-          <label className="text-sm text-muted block mb-1.5">Reference</label>
-          <input
-            type="text"
-            value={reference}
-            onChange={(e) => setReference(e.target.value)}
-            className={inputClass}
-          />
-        </div>
-      </div>
+      {packages.length === 0 ? (
+        <p className="text-sm text-muted">Gift top-ups aren&apos;t available yet. Please check back soon.</p>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {packages.map((pack) => (
+              <button
+                key={pack.id}
+                type="button"
+                onClick={() => setPackageId(pack.id)}
+                aria-pressed={pack.id === packageId}
+                className={`rounded-lg border px-3 py-2.5 text-sm font-semibold transition-colors ${
+                  pack.id === packageId
+                    ? "border-primary bg-primary/10 text-primary"
+                    : "border-border hover:border-primary/40"
+                }`}
+              >
+                {formatUgx(pack.amount)}
+              </button>
+            ))}
+          </div>
 
-      {error && <p className="text-sm text-red-400">{error}</p>}
-      {notice && <p className="text-sm text-green-400">{notice}</p>}
+          <Field label="Number you'll pay from" hint="e.g. 0772123456">
+            <input
+              type="tel"
+              inputMode="tel"
+              autoComplete="tel"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className={inputClass}
+            />
+          </Field>
 
-      <button
-        onClick={topUp}
-        disabled={busy || !Number(amount) || !paidFrom.trim() || !reference.trim()}
-        className="bg-primary hover:bg-primary-hover text-white text-sm font-medium py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50"
-      >
-        {busy ? "Sending..." : "Send top-up"}
-      </button>
-    </div>
+          <Alert tone="info">
+            <b>Important:</b> pay from the same number you type here. If you pay
+            from a different number, we can&apos;t match your payment and your
+            credit won&apos;t be added automatically.
+          </Alert>
+
+          {error && <Alert tone="error">{error}</Alert>}
+
+          <button type="submit" disabled={busy || !selected} className={primaryButtonClass}>
+            {busy ? "Opening MarzPay..." : selected ? `Pay ${formatUgx(selected.amount)}` : "Choose an amount"}
+          </button>
+        </>
+      )}
+    </form>
   );
 }

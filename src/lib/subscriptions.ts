@@ -1,10 +1,3 @@
-export interface PaymentSettings {
-  id: boolean;
-  account_name: string;
-  phone_number: string;
-  updated_at: string;
-}
-
 export interface SubscriptionRecord {
   id: string;
   amount: number;

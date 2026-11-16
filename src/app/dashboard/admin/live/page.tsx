@@ -21,7 +21,7 @@ export default async function AdminLivePage() {
     supabase
       .from("gift_deposits")
       .select(
-        "id, amount, paid_from, reference, note, status, created_at, user:user_id(username, display_name)"
+        "id, amount, paid_from, reference, note, status, method, created_at, user:user_id(username, display_name)"
       )
       .eq("status", "pending")
       .order("created_at", { ascending: true }),
