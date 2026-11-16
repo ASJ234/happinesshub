@@ -2,6 +2,7 @@ const STATUS_STYLES: Record<string, string> = {
   Published: "bg-green-500/20 text-green-400",
   Active: "bg-green-500/20 text-green-400",
   Approved: "bg-green-500/20 text-green-400",
+  Paid: "bg-green-500/20 text-green-400",
   Verified: "bg-green-500/20 text-green-400",
   Draft: "bg-yellow-500/20 text-yellow-400",
   Scheduled: "bg-blue-500/20 text-blue-400",

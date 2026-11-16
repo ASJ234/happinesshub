@@ -25,6 +25,39 @@ export interface WalletTransactionRow {
   created_at: string;
 }
 
+/** Smallest withdrawal, in UGX. Also enforced by request_withdrawal(). */
+export const MIN_WITHDRAWAL = 1000;
+
+export type PayoutMethod = "mtn" | "airtel" | "bank";
+
+export const PAYOUT_METHODS: { value: PayoutMethod; label: string }[] = [
+  { value: "mtn", label: "MTN Mobile Money" },
+  { value: "airtel", label: "Airtel Money" },
+  { value: "bank", label: "Bank transfer" },
+];
+
+export interface PayoutAccount {
+  method: PayoutMethod;
+  account: string;
+}
+
+/** The creator's payout details from their last withdrawal, if any. */
+export async function fetchPayoutAccount(
+  supabase: SupabaseClient,
+  userId: string
+): Promise<PayoutAccount | null> {
+  const { data, error } = await supabase
+    .from("payout_accounts")
+    .select("method, account")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) {
+    console.warn(`[wallet] payout account failed: ${error.message}`);
+    return null;
+  }
+  return (data as PayoutAccount | null) ?? null;
+}
+
 export interface WithdrawalRow {
   id: string;
   user_id: string;

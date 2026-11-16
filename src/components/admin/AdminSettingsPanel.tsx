@@ -11,8 +11,6 @@ interface AdminSettingsPanelProps {
     site_name: string;
     support_whatsapp: string;
     support_message: string;
-    payout_method: string;
-    payout_account: string;
     monthly_pool: number;
     live_allowed_weekdays: number[];
   };
@@ -46,8 +44,6 @@ export function AdminSettingsPanel({ settings, gifts }: AdminSettingsPanelProps)
   const [siteName, setSiteName] = useState(settings.site_name);
   const [whatsapp, setWhatsapp] = useState(settings.support_whatsapp);
   const [message, setMessage] = useState(settings.support_message);
-  const [payoutMethod, setPayoutMethod] = useState(settings.payout_method);
-  const [payoutAccount, setPayoutAccount] = useState(settings.payout_account);
   const [pool, setPool] = useState(String(settings.monthly_pool));
   const [days, setDays] = useState<number[]>(settings.live_allowed_weekdays ?? [3, 5, 6, 7]);
   const [catalogue, setCatalogue] = useState(gifts);
@@ -70,8 +66,6 @@ export function AdminSettingsPanel({ settings, gifts }: AdminSettingsPanelProps)
         site_name: siteName,
         support_whatsapp: whatsapp,
         support_message: message,
-        payout_method: payoutMethod,
-        payout_account: payoutAccount,
         monthly_pool: Number(pool),
         live_allowed_weekdays: days,
       }),
@@ -204,38 +198,18 @@ export function AdminSettingsPanel({ settings, gifts }: AdminSettingsPanelProps)
         <div>
           <h2 className="font-semibold">Payouts</h2>
           <p className="text-xs text-muted mt-0.5">
-            Used by the monthly pool and withdrawal requests.
+            The monthly pool is split between creators by views. Each creator
+            chooses where their own withdrawals are paid.
           </p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <div>
-            <label className="text-sm text-muted block mb-1.5">Payout method</label>
-            <select
-              value={payoutMethod}
-              onChange={(e) => setPayoutMethod(e.target.value)}
-              className={inputClass}
-            >
-              <option value="mtn">MTN Mobile Money</option>
-              <option value="airtel">Airtel Money</option>
-              <option value="bank">Bank transfer</option>
-            </select>
-          </div>
-          <div>
-            <label className="text-sm text-muted block mb-1.5">Payout account</label>
-            <input
-              type="text"
-              value={payoutAccount}
-              onChange={(e) => setPayoutAccount(e.target.value)}
-              className={inputClass}
-            />
-          </div>
-          <div>
             <label className="text-sm text-muted block mb-1.5">Monthly pool (UGX)</label>
             <input
               type="number"
               min="0"
-              step="0.01"
+              step="1000"
               value={pool}
               onChange={(e) => setPool(e.target.value)}
               className={inputClass}
