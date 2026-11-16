@@ -13,6 +13,7 @@ import {
 } from "@/lib/live";
 import { StudioGiftFeed } from "./StudioGiftFeed";
 import { inputClass } from "@/components/ui/styles";
+import { money } from "@/lib/wallet";
 
 interface LiveStudioPanelProps {
   streams: LiveStreamRow[];
@@ -250,7 +251,7 @@ export function LiveStudioPanel({
                 <p className="text-xs text-muted mt-0.5 flex items-center gap-2">
                   <StatusBadge status={liveStatusLabel(stream.status)} />
                   {stream.status !== "live" && stream.gift_total > 0 && (
-                    <span>${stream.gift_total.toFixed(2)} in gifts</span>
+                    <span>{money(stream.gift_total)} in gifts</span>
                   )}
                   {stream.scheduled_for && (
                     <span className="flex items-center gap-1">

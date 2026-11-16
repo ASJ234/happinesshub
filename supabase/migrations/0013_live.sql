@@ -120,13 +120,13 @@ create table if not exists public.live_gifts (
 );
 
 insert into public.live_gifts (slug, name, emoji, price, sort_order) values
-  ('rose', 'Rose', '🌹', 1, 10),
-  ('heart', 'Heart', '❤️', 2, 20),
-  ('kiss', 'Kiss', '💋', 5, 30),
-  ('champagne', 'Champagne', '🍾', 10, 40),
-  ('diamond', 'Diamond', '💎', 20, 50),
-  ('crown', 'Crown', '👑', 50, 60),
-  ('rocket', 'Rocket', '🚀', 100, 70)
+  ('rose', 'Rose', '🌹', 500, 10),
+  ('heart', 'Heart', '❤️', 1000, 20),
+  ('kiss', 'Kiss', '💋', 2000, 30),
+  ('champagne', 'Champagne', '🍾', 5000, 40),
+  ('diamond', 'Diamond', '💎', 10000, 50),
+  ('crown', 'Crown', '👑', 20000, 60),
+  ('rocket', 'Rocket', '🚀', 50000, 70)
 on conflict (slug) do update
   set name = excluded.name,
       emoji = excluded.emoji,

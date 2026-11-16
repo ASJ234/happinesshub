@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Gift, MessageCircle, Save } from "lucide-react";
 import { inputClass } from "@/components/ui/styles";
+import { money } from "@/lib/wallet";
 
 interface AdminSettingsPanelProps {
   settings: {
@@ -110,7 +111,7 @@ export function AdminSettingsPanel({ settings, gifts }: AdminSettingsPanelProps)
     setCatalogue((prev) =>
       prev.map((entry) => (entry.id === gift.id ? { ...entry, price } : entry))
     );
-    setNotice(`${gift.name} now costs $${price.toFixed(2)}`);
+    setNotice(`${gift.name} now costs ${money(price)}`);
     router.refresh();
   }
 
@@ -230,7 +231,7 @@ export function AdminSettingsPanel({ settings, gifts }: AdminSettingsPanelProps)
             />
           </div>
           <div>
-            <label className="text-sm text-muted block mb-1.5">Monthly pool ($)</label>
+            <label className="text-sm text-muted block mb-1.5">Monthly pool (UGX)</label>
             <input
               type="number"
               min="0"
@@ -319,11 +320,11 @@ function GiftRow({ gift, disabled, onSave, onToggle }: GiftRowProps) {
       <span className="text-xl leading-none w-7 text-center">{gift.emoji}</span>
       <span className="text-sm w-24 truncate">{gift.name}</span>
       <div className="flex items-center gap-1.5">
-        <span className="text-sm text-muted">$</span>
+        <span className="text-sm text-muted">UGX</span>
         <input
           type="number"
-          min="0.5"
-          step="0.5"
+          min="100"
+          step="100"
           value={price}
           onChange={(e) => setPrice(e.target.value)}
           className="w-20 bg-surface-elevated border border-border rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
