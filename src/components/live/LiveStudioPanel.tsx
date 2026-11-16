@@ -5,9 +5,8 @@ import { useRouter } from "next/navigation";
 import { CalendarClock, Check, Copy, Play, Square } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import {
-  LIVE_ALLOWED_WEEKDAYS,
+  liveDaysLabel,
   liveStatusLabel,
-  WEEKDAY_NAMES,
   type LiveGift,
   type LiveStreamRow,
 } from "@/lib/live";
@@ -20,6 +19,8 @@ interface LiveStudioPanelProps {
   gifts: LiveGift[];
   canGoLiveToday: boolean;
   todayLabel: string;
+  /** ISO weekdays (1 = Monday) an admin allows, from Settings. */
+  liveDays: number[];
 }
 
 interface StreamCredentials {
@@ -66,6 +67,7 @@ export function LiveStudioPanel({
   gifts,
   canGoLiveToday,
   todayLabel,
+  liveDays,
 }: LiveStudioPanelProps) {
   const router = useRouter();
   const [title, setTitle] = useState("");
@@ -142,7 +144,7 @@ export function LiveStudioPanel({
   const selectedDay = date ? new Date(`${date}T00:00:00`).getDay() : null;
   const selectedIsoDay = selectedDay === 0 ? 7 : selectedDay;
   const dayAllowed =
-    selectedIsoDay === null || LIVE_ALLOWED_WEEKDAYS.includes(selectedIsoDay);
+    selectedIsoDay === null || liveDays.includes(selectedIsoDay);
 
   return (
     <div className="space-y-6">
@@ -155,9 +157,9 @@ export function LiveStudioPanel({
       >
         {canGoLiveToday
           ? `Today (${todayLabel}) is a live day. Approved streams can go live right now.`
-          : `Today (${todayLabel}) is not a live day. You can go live on ${LIVE_ALLOWED_WEEKDAYS.map(
-              (day) => WEEKDAY_NAMES[day - 1]
-            ).join(", ")}.`}
+          : liveDays.length > 0
+            ? `Today (${todayLabel}) is not a live day. You can go live on ${liveDaysLabel(liveDays)}.`
+            : `Live streams are paused for now. No days are open for going live.`}
       </div>
 
       {error && <p className="text-sm text-red-400">{error}</p>}
@@ -206,6 +208,7 @@ export function LiveStudioPanel({
             {!dayAllowed && (
               <p className="text-xs text-red-400 mt-1.5">
                 Going live is not allowed on that day.
+                {liveDays.length > 0 && ` Pick a ${liveDaysLabel(liveDays).replace(" and ", " or ")}.`}
               </p>
             )}
           </div>

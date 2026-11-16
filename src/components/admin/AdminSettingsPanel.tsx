@@ -1,5 +1,7 @@
 "use client";
 
+import { LiveDaysPicker } from "./LiveDaysPicker";
+import { DEFAULT_LIVE_WEEKDAYS } from "@/lib/live";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Gift, MessageCircle, Save } from "lucide-react";
@@ -24,15 +26,6 @@ interface AdminSettingsPanelProps {
   }>;
 }
 
-const WEEKDAYS = [
-  { value: 1, label: "Monday" },
-  { value: 2, label: "Tuesday" },
-  { value: 3, label: "Wednesday" },
-  { value: 4, label: "Thursday" },
-  { value: 5, label: "Friday" },
-  { value: 6, label: "Saturday" },
-  { value: 7, label: "Sunday" },
-];
 
 
 export function AdminSettingsPanel({ settings, gifts }: AdminSettingsPanelProps) {
@@ -45,14 +38,7 @@ export function AdminSettingsPanel({ settings, gifts }: AdminSettingsPanelProps)
   const [whatsapp, setWhatsapp] = useState(settings.support_whatsapp);
   const [message, setMessage] = useState(settings.support_message);
   const [pool, setPool] = useState(String(settings.monthly_pool));
-  const [days, setDays] = useState<number[]>(settings.live_allowed_weekdays ?? [3, 5, 6, 7]);
   const [catalogue, setCatalogue] = useState(gifts);
-
-  function toggleDay(day: number) {
-    setDays((prev) =>
-      prev.includes(day) ? prev.filter((d) => d !== day) : [...prev, day].sort()
-    );
-  }
 
   async function save() {
     setBusy(true);
@@ -67,7 +53,6 @@ export function AdminSettingsPanel({ settings, gifts }: AdminSettingsPanelProps)
         support_whatsapp: whatsapp,
         support_message: message,
         monthly_pool: Number(pool),
-        live_allowed_weekdays: days,
       }),
     });
 
@@ -222,25 +207,15 @@ export function AdminSettingsPanel({ settings, gifts }: AdminSettingsPanelProps)
         <div>
           <h2 className="font-semibold">Live days</h2>
           <p className="text-xs text-muted mt-0.5">
-            Creators can only go live on the days you tick.
+            Creators can only go live on the days you tick. Changes save as
+            soon as you tap a day.
           </p>
         </div>
 
-        <div className="flex flex-wrap gap-2">
-          {WEEKDAYS.map((day) => (
-            <button
-              key={day.value}
-              onClick={() => toggleDay(day.value)}
-              className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
-                days.includes(day.value)
-                  ? "border-primary bg-primary/15 text-foreground"
-                  : "border-border bg-surface-elevated text-muted"
-              }`}
-            >
-              {day.label}
-            </button>
-          ))}
-        </div>
+        <LiveDaysPicker
+          initialDays={settings.live_allowed_weekdays ?? DEFAULT_LIVE_WEEKDAYS}
+        />
+
       </div>
 
       <div className="bg-surface border border-border rounded-2xl p-5 space-y-4">

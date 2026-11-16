@@ -4,12 +4,14 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { CategoryFeed } from "@/components/dashboard/CategoryFeed";
 import { LiveStreamCard } from "@/components/live/LiveStreamCard";
-import { fetchLiveStreams } from "@/lib/live";
-import { liveDaySummary } from "@/lib/live";
+import { fetchLiveDays, fetchLiveStreams, liveDaysLabel } from "@/lib/live";
 
 export default async function LivePage() {
   const supabase = await createClient();
-  const streams = await fetchLiveStreams(supabase, { limit: 30 });
+  const [streams, liveDays] = await Promise.all([
+    fetchLiveStreams(supabase, { limit: 30 }),
+    fetchLiveDays(supabase),
+  ]);
 
   const liveNow = streams.filter((stream) => stream.status === "live");
   const upcoming = streams.filter(
@@ -22,7 +24,11 @@ export default async function LivePage() {
       <PageHeader
         icon={<Radio className="text-primary" size={28} />}
         title="Live"
-        description={`Going live is allowed on ${liveDaySummary()}`}
+        description={
+          liveDays.length > 0
+            ? `Going live is allowed on ${liveDaysLabel(liveDays)}`
+            : "Live streams are paused for now"
+        }
       />
 
       <section>
