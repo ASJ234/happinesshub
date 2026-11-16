@@ -75,6 +75,12 @@ export function PaymentLinkForm({ plan, state }: PaymentLinkFormProps) {
           />
         </Field>
 
+        <Alert tone="info">
+          <b>Important:</b> pay from the same number you type here. If you pay
+          from a different number, we can&apos;t match your payment and your
+          padlocks won&apos;t open automatically.
+        </Alert>
+
         {unavailable && (
           <Alert tone="error">This plan can&apos;t be paid online yet. Please contact support.</Alert>
         )}

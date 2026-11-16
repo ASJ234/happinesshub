@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Clock } from "lucide-react";
+import { Alert } from "@/components/ui/Alert";
 import type { SubscriptionRecord } from "@/lib/subscriptions";
 import { formatUgx } from "@/lib/videos";
 import { StatusCard } from "./StatusCard";
@@ -46,6 +47,10 @@ export function PaymentLinkPending({ latest, planName, paymentLink }: PaymentLin
           ["Started", new Date(latest.created_at).toLocaleString()],
         ]}
       />
+      <Alert tone="info">
+        Pay from <b>{latest.paid_from}</b>, the number you entered. A payment
+        from any other number can&apos;t be matched to your account.
+      </Alert>
       <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm">
         {paymentLink && (
           <a href={paymentLink} className="text-primary hover:underline">
