@@ -7,11 +7,11 @@ export const runtime = "nodejs";
 
 /**
  * Set as the Callback URL on each plan's MarzPay payment link, and with
- * `?for=gift` on each gift top-up package's link. Every call is
- * stored in payment_link_events. A completed payment opens the matching
- * pending request (same phone, amount covered, last hour) automatically, but
- * only when the callback is signed: an unsigned one could be forged, so it is
- * left for an admin to approve.
+ * `?for=gift` on each gift top-up package's link. Every call is stored in
+ * payment_link_events. A completed payment opens the newest waiting request
+ * from the same number (amount covered, last hour); a failed one marks that
+ * request as not paid. Both only when the callback is signed: an unsigned one
+ * could be forged, so it is left for an admin.
  */
 export async function POST(request: Request) {
   const rawBody = Buffer.from(await request.arrayBuffer());
@@ -44,7 +44,16 @@ export async function POST(request: Request) {
   let outcome = "recorded";
 
   try {
-    if (!payment.completed) {
+    if (payment.failed && signed && payment.phone) {
+      // Marks the request as not paid, so it can't take someone else's payment.
+      const { data, error } = await admin.rpc(
+        kind === "gift" ? "fail_gift_link_payment" : "fail_link_payment",
+        { p_phone: payment.phone, p_amount: payment.amount }
+      );
+      if (error) throw error;
+      matchedId = (data as string | null) ?? null;
+      outcome = matchedId ? "marked_failed" : "failed_no_request";
+    } else if (!payment.completed) {
       outcome = "not_completed";
     } else if (!signed) {
       outcome = "unsigned_needs_admin";

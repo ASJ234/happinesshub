@@ -16,6 +16,8 @@ export function paymentMode(): PaymentMode {
 
 export interface LinkPayment {
   completed: boolean;
+  /** MarzPay says the payment failed or was cancelled. */
+  failed: boolean;
   status: string | null;
   phone: string | null;
   amount: number | null;
@@ -23,6 +25,7 @@ export interface LinkPayment {
 }
 
 const COMPLETED = new Set(["completed", "successful", "success", "paid"]);
+const FAILED = new Set(["failed", "cancelled", "canceled", "rejected", "expired"]);
 
 /** The first value found under any of `keys`, searching nested objects. */
 function find(value: unknown, keys: string[], depth = 0): unknown {
@@ -65,6 +68,9 @@ export function parseLinkCallback(payload: unknown): LinkPayment {
   return {
     completed:
       (status !== null && COMPLETED.has(status)) || eventType.endsWith(".completed"),
+    failed:
+      (status !== null && FAILED.has(status)) ||
+      [".failed", ".cancelled", ".canceled"].some((end) => eventType.endsWith(end)),
     status,
     phone: phone === undefined ? null : normalizeUgPhone(String(phone)),
     amount: toAmount(find(payload, ["amount", "paid_amount"])),
