@@ -19,6 +19,7 @@ const INTRO: Partial<Record<SubscriptionState, string>> = {
   expired: "Your subscription expired — pay again to renew it.",
   rejected: "Your previous request was rejected — you can pay again.",
   failed: "Your last payment didn't go through — you can try again.",
+  revoked: "Your subscription was cancelled by an admin. Contact support if you think this is a mistake, or pay again.",
 };
 
 /** Sends a MarzPay mobile money prompt for the chosen plan. */

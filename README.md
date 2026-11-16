@@ -86,6 +86,7 @@ again. Each file ends with a `select` that shows what it created.
 | 28 | `0028_picha_photos.sql` | `picha_photos` (the Picha photo wall), copies existing Picha profile photos into it |
 | 29 | `0029_withdrawal_fixes.sql` | per-creator `payout_accounts`, UGX 1,000 minimum, refunds no longer count as lifetime earnings, wallet locked during a withdrawal |
 | 30 | `0030_link_matching_newest.sql` | link payments go to the newest waiting request from that number; failed payments mark it failed |
+| 31 | `0031_revoke_subscription.sql` | `revoked` status and `admin_revoke_subscription()` for the Admin Panel's Revoke button |
 
 ### Applying them without the SQL editor
 

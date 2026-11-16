@@ -5,7 +5,7 @@ export interface SubscriptionRecord {
   paid_from: string;
   reference: string;
   note: string | null;
-  status: "pending" | "active" | "rejected" | "failed";
+  status: "pending" | "active" | "rejected" | "failed" | "revoked";
   method: "manual" | "marzpay" | "link";
   expires_at: string | null;
   created_at: string;
@@ -16,6 +16,7 @@ export type SubscriptionState =
   | "pending"
   | "rejected"
   | "failed"
+  | "revoked"
   | "expired"
   | "none";
 
@@ -32,6 +33,7 @@ export function subscriptionState(
       : "expired";
   }
   if (latest.status === "failed") return "failed";
+  if (latest.status === "revoked") return "revoked";
   return "rejected";
 }
 
