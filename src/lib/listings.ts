@@ -60,10 +60,9 @@ export function isServiceCategory(slug: string): boolean {
 /** The listing sectors an account type may publish in. */
 export function listingCategoriesForRole(role: Role): string[] {
   switch (role) {
+    // Picha is a photo wall now (picha_photos), not a listing sector.
     case "admin":
-      return ["picha", "wardrobe", "masseuse", "hookups"];
-    case "creator":
-      return ["picha"];
+      return ["wardrobe", "masseuse", "hookups"];
     case "provider":
       return [...SERVICE_CATEGORIES];
     case "vendor":

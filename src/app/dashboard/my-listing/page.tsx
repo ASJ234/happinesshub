@@ -22,7 +22,7 @@ const HEADINGS: Record<string, { title: string; description: string }> = {
 };
 
 export default async function MyListingPage() {
-  const user = await requireRole("creator", "provider", "vendor", "admin");
+  const user = await requireRole("provider", "vendor", "admin");
 
   const supabase = await createClient();
   const listings = await fetchListings(supabase, { userId: user.id });
@@ -33,10 +33,7 @@ export default async function MyListingPage() {
 
   const heading = HEADINGS[user.role] ?? {
     title: "My Profiles",
-    description:
-      user.role === "admin"
-        ? "Publish profiles in any listing sector"
-        : "Publish your Picha gallery",
+    description: "Publish profiles in any listing sector",
   };
 
   return (

@@ -10,9 +10,9 @@ import {
 } from "@/lib/listing-routes";
 import { createClient } from "@/lib/supabase/server";
 
-// Creates a listing. Creators publish Picha, service providers one Masseuse or
-// Hookups profile, vendors a Wardrobe shop. Masseuse and Hookups profiles
-// start as pending and need an admin to approve them; the database decides the
+// Creates a listing. Service providers publish one Masseuse or Hookups
+// profile, vendors a Wardrobe shop. Masseuse and Hookups profiles start as
+// pending and need an admin to approve them; the database decides the
 // status (prepare_listing), so it is never taken from the request.
 export async function POST(request: Request) {
   const user = await getCurrentUser();
