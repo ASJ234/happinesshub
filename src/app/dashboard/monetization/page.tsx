@@ -1,6 +1,7 @@
 import { Wallet } from "lucide-react";
 import { requireRole } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { fetchGiftTopUpState } from "@/lib/gift-topups";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { WalletPanel } from "@/components/wallet/WalletPanel";
 import {
@@ -14,7 +15,7 @@ export default async function MonetizationPage() {
 
   const supabase = await createClient();
 
-  const [wallet, transactions, withdrawals, settings, giftBalance, payment] =
+  const [wallet, transactions, withdrawals, settings, giftBalance, topUp] =
     await Promise.all([
       fetchWallet(supabase, user.id),
       fetchTransactions(supabase, user.id),
@@ -25,11 +26,7 @@ export default async function MonetizationPage() {
         .eq("id", true)
         .maybeSingle(),
       supabase.rpc("gift_balance").then(({ data }) => Number(data ?? 0)),
-      supabase
-        .from("payment_settings")
-        .select("account_name, phone_number")
-        .eq("id", true)
-        .maybeSingle(),
+      fetchGiftTopUpState(supabase, user.id),
     ]);
 
   return (
@@ -48,7 +45,7 @@ export default async function MonetizationPage() {
         payoutMethod={settings.data?.payout_method ?? "mtn"}
         payoutAccount={settings.data?.payout_account ?? ""}
         giftBalance={giftBalance}
-        payTo={payment.data}
+        topUp={topUp}
       />
     </div>
   );

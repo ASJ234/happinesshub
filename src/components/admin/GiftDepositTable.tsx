@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, X } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { formatUgx } from "@/lib/videos";
 
 export interface GiftDepositRow {
   id: string;
@@ -12,6 +13,7 @@ export interface GiftDepositRow {
   reference: string;
   note: string | null;
   status: string;
+  method: "manual" | "link";
   created_at: string;
   user: { username: string; display_name: string | null } | null;
 }
@@ -84,8 +86,15 @@ export function GiftDepositTable({ deposits }: { deposits: GiftDepositRow[] }) {
               <td className="p-4">
                 {deposit.user?.display_name || deposit.user?.username || "Unknown"}
               </td>
-              <td className="p-4 font-medium">${deposit.amount.toFixed(2)}</td>
-              <td className="p-4 text-muted text-xs">{deposit.paid_from}</td>
+              <td className="p-4 font-medium">{formatUgx(Number(deposit.amount))}</td>
+              <td className="p-4 text-muted text-xs">
+                {deposit.paid_from}
+                <p className="text-muted/70 mt-0.5">
+                  {deposit.method === "link"
+                    ? "MarzPay link — check it arrived"
+                    : "Manual deposit"}
+                </p>
+              </td>
               <td className="p-4 text-muted text-xs">{deposit.reference}</td>
               <td className="p-4">
                 <StatusBadge

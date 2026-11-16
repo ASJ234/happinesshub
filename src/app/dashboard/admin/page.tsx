@@ -10,7 +10,8 @@ import {
   PendingPayments,
   type AdminSubscriptionRow,
 } from "@/components/admin/PendingPayments";
-import { PaymentSettingsForm } from "@/components/admin/PaymentSettingsForm";
+import { GiftPackagesForm } from "@/components/admin/GiftPackagesForm";
+import { fetchGiftTopUpPackages } from "@/lib/gift-topups";
 import { PlanLinksForm } from "@/components/admin/PlanLinksForm";
 import { headers } from "next/headers";
 import { DeleteVideoButton } from "@/components/videos/DeleteVideoButton";
@@ -27,7 +28,7 @@ export default async function AdminPage() {
   const admin = await requireRole("admin");
   const supabase = await createClient();
 
-  const [profilesResult, videosResult, subsResult, settingsResult, plans] =
+  const [profilesResult, videosResult, subsResult, giftPackages, plans] =
     await Promise.all([
       supabase
         .from("profiles")
@@ -47,7 +48,7 @@ export default async function AdminPage() {
         )
         .order("created_at", { ascending: false })
         .limit(50),
-      supabase.from("payment_settings").select("*").eq("id", true).maybeSingle(),
+      fetchGiftTopUpPackages(supabase),
       fetchSubscriptionPlans(supabase),
     ]);
 
@@ -122,9 +123,17 @@ export default async function AdminPage() {
 
       <Card className="overflow-hidden">
         <div className="p-4 border-b border-border">
-          <h2 className="font-semibold">Payment Details</h2>
+          <h2 className="font-semibold">Gift Credit Top-up Links</h2>
+          <p className="text-xs text-muted mt-0.5">
+            Users buy gift credit through these. Approve their top-ups on Live
+            Requests once the money shows in MarzPay.
+          </p>
         </div>
-        <PaymentSettingsForm settings={settingsResult.data} />
+        <GiftPackagesForm
+          packages={giftPackages}
+          redirectUrl={`${siteUrl}/dashboard/subscription#gift-credit`}
+          callbackUrl={`${siteUrl}/api/webhooks/marzpay-link?for=gift`}
+        />
       </Card>
 
       <Card className="overflow-hidden">

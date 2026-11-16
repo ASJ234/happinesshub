@@ -81,6 +81,7 @@ again. Each file ends with a `select` that shows what it created.
 | 23 | `0023_live_gift_lock.sql` | `send_live_gift()` locks per sender so simultaneous gifts cannot overspend gift credit |
 | 24 | `0024_marzpay.sql` | `subscriptions.method`/`provider_reference`, the `failed` status, `marzpay_settle_subscription()` |
 | 25 | `0025_payment_links.sql` | `subscription_plans.payment_link`, the `link` method, `payment_link_events`, `match_link_payment()` |
+| 26 | `0026_gift_topup_links.sql` | `gift_topup_packages`, `gift_deposits.method`, the `cancelled` status, `match_gift_link_payment()` |
 
 ### Applying them without the SQL editor
 
@@ -182,6 +183,14 @@ proxy is set (`MARZPAY_PROXY_URL`) or `MARZPAY_MODE=api`, in which case the
    request from the last hour with the same number and a covered amount.
    Every callback is stored in `payment_link_events`; MarzPay does not
    document the payload, so check that table after the first real payment.
+
+### Gift-credit top-ups
+
+Top-ups work the same way, with packages instead of plans. Admins manage the
+amounts and their links on the Admin Panel under **Gift Credit Top-up Links**
+(amounts without a link are hidden). Each link's Callback URL is
+`/api/webhooks/marzpay-link?for=gift`. Pending top-ups are approved on
+**Live Requests**, or matched automatically by `match_gift_link_payment()`.
 
 ### Collect Money API
 

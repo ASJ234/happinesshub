@@ -10,6 +10,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { GiftTopUpForm } from "@/components/wallet/GiftTopUpForm";
 import { money } from "@/lib/wallet";
 import { paymentMode } from "@/lib/payment-links";
+import { fetchGiftTopUpState } from "@/lib/gift-topups";
 import { subscriptionState, type SubscriptionRecord } from "@/lib/subscriptions";
 
 export default async function SubscriptionPage() {
@@ -44,8 +45,8 @@ export default async function SubscriptionPage() {
     );
   }
 
-  const [settingsResult, latestResult, plans, giftBalance] = await Promise.all([
-    supabase.from("payment_settings").select("*").eq("id", true).maybeSingle(),
+  const [topUp, latestResult, plans, giftBalance] = await Promise.all([
+    fetchGiftTopUpState(supabase, user.id),
     supabase
       .from("subscriptions")
       .select("*")
@@ -82,7 +83,7 @@ export default async function SubscriptionPage() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <StatCard label="Gift credit to spend on live streams" value={money(giftBalance)} icon={Gift} />
           <div className="lg:col-span-2">
-            <GiftTopUpForm payTo={settingsResult.data} />
+            <GiftTopUpForm topUp={topUp} />
           </div>
         </div>
       </section>
