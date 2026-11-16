@@ -39,6 +39,12 @@ MUX_TOKEN_SECRET=...
 MUX_SIGNING_KEY=...
 MUX_PRIVATE_KEY=...
 MUX_WEBHOOK_SECRET=...
+
+# MarzPay subscriptions (mobile money)
+MARZPAY_API_KEY=...
+MARZPAY_API_SECRET=...
+MARZPAY_WEBHOOK_SECRET=...           # optional: "Sign outgoing webhooks" secret
+MARZPAY_CALLBACK_URL=...             # optional: defaults to https://<host>/api/webhooks/marzpay
 ```
 
 `NEXT_PUBLIC_SUPABASE_ANON_KEY` is accepted as a fallback for the publishable key.
@@ -72,6 +78,7 @@ again. Each file ends with a `select` that shows what it created.
 | 21 | `0021_service_providers.sql` | `provider` and `vendor` roles, who may list in which sector, profile pictures, `listing_items` (services and products) |
 | 22 | `0022_admin_listings.sql` | admins can add photos, services and products to any listing; admins skip the one-service rule |
 | 23 | `0023_live_gift_lock.sql` | `send_live_gift()` locks per sender so simultaneous gifts cannot overspend gift credit |
+| 24 | `0024_marzpay.sql` | `subscriptions.method`/`provider_reference`, the `failed` status, `marzpay_settle_subscription()` |
 
 ### Applying them without the SQL editor
 
@@ -151,6 +158,31 @@ player's Player.js `play` event. Deleting a video also deletes it from Bunny.
 4. Set the webhook URL to `https://<your-domain>/api/webhooks/bunny`.
 5. Confirm that a video's `https://<pull-zone>.b-cdn.net/<video-id>/playlist.m3u8`
    URL returns 403 when opened directly.
+
+## Subscriptions (MarzPay)
+
+Subscribers pay with MTN or Airtel mobile money through MarzPay's
+Collect Money API. Nobody has to approve anything.
+
+1. On `/dashboard/subscription` the subscriber picks a plan and enters their
+   number. `POST /api/subscriptions/marzpay` stores a `pending` row with a
+   fresh UUID `reference`, then asks MarzPay to send the payment prompt. The
+   amount always comes from `subscription_plans`, never from the browser.
+2. The page shows "Check your phone" and polls `GET /api/subscriptions/marzpay`.
+3. MarzPay posts the result to `POST /api/webhooks/marzpay`. Both the webhook
+   and the poll re-read the collection from MarzPay's API before
+   `marzpay_settle_subscription()` sets the row to `active` (with its expiry) or
+   `failed`. A forged callback cannot open a padlock.
+4. An unanswered prompt is abandoned after 3 minutes, and the subscriber can
+   try again. If the abandoned payment completes later, it still activates.
+
+Setup: copy the API key and secret from the MarzPay dashboard. The live site
+must be on https so MarzPay can reach the webhook (localhost relies on polling).
+For signed callbacks, turn on **Business Settings → Webhooks & Security →
+Sign outgoing webhooks** and set `MARZPAY_WEBHOOK_SECRET`.
+
+Manual deposits from before MarzPay can still be approved on the Admin Panel.
+Gift-credit top-ups are still manual.
 
 ## Live streaming (Mux)
 

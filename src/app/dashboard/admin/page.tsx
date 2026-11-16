@@ -50,7 +50,9 @@ export default async function AdminPage() {
   const profiles = profilesResult.data ?? [];
   const videos = (videosResult.data ?? []) as VideoRow[];
   const subscriptions = subsResult.data ?? [];
-  const pendingCount = subscriptions.filter((s) => s.status === "pending").length;
+  const pendingCount = subscriptions.filter(
+    (s) => s.status === "pending" && s.method !== "marzpay"
+  ).length;
   const totalViews = videos.reduce((sum, v) => sum + (v.views ?? 0), 0);
 
   return (

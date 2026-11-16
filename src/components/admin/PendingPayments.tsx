@@ -13,7 +13,8 @@ export interface AdminSubscriptionRow {
   paid_from: string;
   reference: string;
   note: string | null;
-  status: "pending" | "active" | "rejected";
+  status: "pending" | "active" | "rejected" | "failed";
+  method: "manual" | "marzpay";
   plan_id: string;
   expires_at: string | null;
   created_at: string;
@@ -25,6 +26,7 @@ const STATUS_LABELS: Record<string, string> = {
   pending: "Pending",
   active: "Active",
   rejected: "Rejected",
+  failed: "Failed",
 };
 
 interface PendingPaymentsProps {
@@ -99,7 +101,12 @@ export function PendingPayments({ requests }: PendingPaymentsProps) {
                 {formatUgx(row.amount)}
                 <p className="text-xs text-muted mt-0.5">{row.plan_id}</p>
               </td>
-              <td className="p-4 text-muted">{row.paid_from}</td>
+              <td className="p-4 text-muted">
+                {row.paid_from}
+                <p className="text-xs text-muted/70 mt-0.5">
+                  {row.method === "marzpay" ? "MarzPay" : "Manual deposit"}
+                </p>
+              </td>
               <td className="p-4 text-muted">
                 {row.reference}
                 {row.note && (
@@ -116,7 +123,9 @@ export function PendingPayments({ requests }: PendingPaymentsProps) {
                 )}
               </td>
               <td className="p-4">
-                {row.status === "pending" ? (
+                {row.status === "pending" && row.method === "marzpay" ? (
+                  <span className="text-xs text-muted">Awaiting phone approval</span>
+                ) : row.status === "pending" ? (
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => review(row.id, "approve")}

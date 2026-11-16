@@ -9,7 +9,7 @@ import { SubscriptionPanel } from "@/components/subscription/SubscriptionPanel";
 import { StatCard } from "@/components/ui/StatCard";
 import { GiftTopUpForm } from "@/components/wallet/GiftTopUpForm";
 import { money } from "@/lib/wallet";
-import { subscriptionState } from "@/lib/subscriptions";
+import { subscriptionState, type SubscriptionRecord } from "@/lib/subscriptions";
 
 export default async function SubscriptionPage() {
   const user = await requireUser();
@@ -21,7 +21,7 @@ export default async function SubscriptionPage() {
         <PageHeader
           icon={<CreditCard className="text-primary" size={28} />}
           title="Subscription"
-          description="Pick a plan, deposit, and every padlock opens until it expires"
+          description="Pick a plan, pay with mobile money, and every padlock opens until it expires"
         />
         <Card className="p-6">
           <span className="inline-flex items-center gap-2 text-primary font-medium">
@@ -50,13 +50,15 @@ export default async function SubscriptionPage() {
       .select("*")
       .eq("user_id", user.id)
       .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle(),
+      .limit(10),
     fetchSubscriptionPlans(supabase),
     supabase.rpc("gift_balance").then(({ data }) => Number(data ?? 0)),
   ]);
 
-  const latest = latestResult.data;
+  // A running subscription wins over a newer failed or abandoned attempt.
+  const recent = (latestResult.data ?? []) as SubscriptionRecord[];
+  const latest =
+    recent.find((row) => subscriptionState(row) === "active") ?? recent[0] ?? null;
   const state = subscriptionState(latest);
 
   return (
@@ -64,11 +66,10 @@ export default async function SubscriptionPage() {
       <PageHeader
         icon={<CreditCard className="text-primary" size={28} />}
         title="Subscription"
-        description="Pick a plan, deposit, and every padlock opens until it expires"
+        description="Pick a plan, pay with mobile money, and every padlock opens until it expires"
       />
 
       <SubscriptionPanel
-        settings={settingsResult.data}
         latest={latest}
         plans={plans}
         state={state}
