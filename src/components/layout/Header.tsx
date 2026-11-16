@@ -13,7 +13,8 @@ import {
 import { Logo } from "./Logo";
 import { MobileNav } from "./MobileNav";
 import type { User } from "@/lib/roles";
-import { getNavForRole, ROLE_LABELS } from "@/lib/roles";
+import { getNavForRole } from "@/lib/roles";
+import { AccountMenu } from "./AccountMenu";
 
 interface HeaderProps {
   user: User | null;
@@ -119,15 +120,7 @@ export function Header({ user }: HeaderProps) {
                 <LogOut size={18} />
               </button>
 
-              <div className="flex items-center gap-2 ml-1">
-                <div className="w-8 h-8 rounded-full gradient-brand flex items-center justify-center text-white text-xs font-bold">
-                  {user.initials}
-                </div>
-                <div className="hidden xl:block">
-                  <p className="text-sm font-medium leading-none">{user.name}</p>
-                  <p className="text-[11px] text-muted mt-0.5">{ROLE_LABELS[user.role]}</p>
-                </div>
-              </div>
+              <AccountMenu user={user} onLogout={handleLogout} />
             </>
           ) : (
             <Link
