@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { fetch as undiciFetch, ProxyAgent } from "undici";
 
 // MarzPay Collect Money API: https://wallet.wearemarz.com/documentation/collections
 const API_BASE = "https://wallet.wearemarz.com/api/v1";
@@ -12,6 +13,20 @@ function authHeader(): string {
   const secret = process.env.MARZPAY_API_SECRET;
   if (!key || !secret) throw new Error("MarzPay is not configured");
   return `Basic ${Buffer.from(`${key}:${secret}`).toString("base64")}`;
+}
+
+/**
+ * MarzPay only accepts API calls from whitelisted IPs, and Vercel has no
+ * fixed outgoing IP. MARZPAY_PROXY_URL (http://user:pass@host:port) routes
+ * MarzPay calls, and only those, through a proxy with a static IP.
+ */
+let proxyAgent: ProxyAgent | null | undefined;
+function marzDispatcher(): ProxyAgent | null {
+  if (proxyAgent === undefined) {
+    const url = process.env.MARZPAY_PROXY_URL;
+    proxyAgent = url ? new ProxyAgent(url) : null;
+  }
+  return proxyAgent;
 }
 
 /** A request MarzPay answered with an error, or could not be reached for. */
@@ -38,17 +53,23 @@ export class MarzPayError extends Error {
 async function marzFetch(path: string, init: RequestInit = {}): Promise<unknown> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE}${path}`, {
-      ...init,
+    const dispatcher = marzDispatcher();
+    const request = {
+      method: init.method ?? "GET",
+      body: init.body as string | undefined,
       headers: {
         Authorization: authHeader(),
         Accept: "application/json",
         "Content-Type": "application/json",
-        ...init.headers,
       },
-      cache: "no-store",
       signal: AbortSignal.timeout(20_000),
-    });
+    };
+    response = dispatcher
+      ? ((await undiciFetch(`${API_BASE}${path}`, {
+          ...request,
+          dispatcher,
+        })) as unknown as Response)
+      : await fetch(`${API_BASE}${path}`, { ...request, cache: "no-store" });
   } catch (error) {
     throw new MarzPayError(`Could not reach MarzPay (${String(error)})`, 0);
   }
