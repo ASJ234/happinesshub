@@ -11,10 +11,13 @@ import {
   type AdminSubscriptionRow,
 } from "@/components/admin/PendingPayments";
 import { PaymentSettingsForm } from "@/components/admin/PaymentSettingsForm";
+import { PlanLinksForm } from "@/components/admin/PlanLinksForm";
+import { headers } from "next/headers";
 import { DeleteVideoButton } from "@/components/videos/DeleteVideoButton";
 import {
   creatorLabel,
   formatDate,
+  fetchSubscriptionPlans,
   formatViews,
   videoStatusLabel,
   type VideoRow,
@@ -24,7 +27,7 @@ export default async function AdminPage() {
   const admin = await requireRole("admin");
   const supabase = await createClient();
 
-  const [profilesResult, videosResult, subsResult, settingsResult] =
+  const [profilesResult, videosResult, subsResult, settingsResult, plans] =
     await Promise.all([
       supabase
         .from("profiles")
@@ -45,7 +48,13 @@ export default async function AdminPage() {
         .order("created_at", { ascending: false })
         .limit(50),
       supabase.from("payment_settings").select("*").eq("id", true).maybeSingle(),
+      fetchSubscriptionPlans(supabase),
     ]);
+
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
+  const proto = requestHeaders.get("x-forwarded-proto") ?? "https";
+  const siteUrl = `${proto}://${host}`;
 
   const profiles = profilesResult.data ?? [];
   const videos = (videosResult.data ?? []) as VideoRow[];
@@ -94,6 +103,21 @@ export default async function AdminPage() {
           </p>
         </div>
         <PendingPayments requests={subscriptions as AdminSubscriptionRow[]} />
+      </Card>
+
+      <Card className="overflow-hidden">
+        <div className="p-4 border-b border-border">
+          <h2 className="font-semibold">MarzPay Payment Links</h2>
+          <p className="text-xs text-muted mt-0.5">
+            Subscribers pay through these. Approve their requests above once the
+            money shows in MarzPay.
+          </p>
+        </div>
+        <PlanLinksForm
+          plans={plans}
+          redirectUrl={`${siteUrl}/dashboard/subscription`}
+          callbackUrl={`${siteUrl}/api/webhooks/marzpay-link`}
+        />
       </Card>
 
       <Card className="overflow-hidden">

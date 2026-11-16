@@ -80,6 +80,7 @@ again. Each file ends with a `select` that shows what it created.
 | 22 | `0022_admin_listings.sql` | admins can add photos, services and products to any listing; admins skip the one-service rule |
 | 23 | `0023_live_gift_lock.sql` | `send_live_gift()` locks per sender so simultaneous gifts cannot overspend gift credit |
 | 24 | `0024_marzpay.sql` | `subscriptions.method`/`provider_reference`, the `failed` status, `marzpay_settle_subscription()` |
+| 25 | `0025_payment_links.sql` | `subscription_plans.payment_link`, the `link` method, `payment_link_events`, `match_link_payment()` |
 
 ### Applying them without the SQL editor
 
@@ -161,6 +162,28 @@ player's Player.js `play` event. Deleting a video also deletes it from Bunny.
    URL returns 403 when opened directly.
 
 ## Subscriptions (MarzPay)
+
+There are two ways to pay. **Payment links** are used unless a static-IP
+proxy is set (`MARZPAY_PROXY_URL`) or `MARZPAY_MODE=api`, in which case the
+**Collect Money API** below is used instead.
+
+### Payment links (default)
+
+1. In MarzPay, create one payment link per plan with a fixed amount. Paste
+   each link on the Admin Panel under **MarzPay Payment Links**, and set every
+   link's Redirect and Callback URLs to the ones shown there.
+2. The subscriber picks a plan, enters the number they will pay from and is
+   sent to the link. A `pending` subscription with `method = 'link'` records
+   the plan and number.
+3. An admin approves it on the Admin Panel once the money shows in MarzPay.
+4. Automatic approval: MarzPay posts to `/api/webhooks/marzpay-link`. When
+   webhook signing is on (`MARZPAY_WEBHOOK_SECRET`) and the callback reports a
+   completed payment, `match_link_payment()` activates the oldest pending link
+   request from the last hour with the same number and a covered amount.
+   Every callback is stored in `payment_link_events`; MarzPay does not
+   document the payload, so check that table after the first real payment.
+
+### Collect Money API
 
 Subscribers pay with MTN or Airtel mobile money through MarzPay's
 Collect Money API. Nobody has to approve anything.

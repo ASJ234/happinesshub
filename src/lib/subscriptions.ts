@@ -13,7 +13,7 @@ export interface SubscriptionRecord {
   reference: string;
   note: string | null;
   status: "pending" | "active" | "rejected" | "failed";
-  method: "manual" | "marzpay";
+  method: "manual" | "marzpay" | "link";
   expires_at: string | null;
   created_at: string;
 }

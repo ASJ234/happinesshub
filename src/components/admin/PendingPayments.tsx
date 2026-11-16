@@ -14,7 +14,7 @@ export interface AdminSubscriptionRow {
   reference: string;
   note: string | null;
   status: "pending" | "active" | "rejected" | "failed";
-  method: "manual" | "marzpay";
+  method: "manual" | "marzpay" | "link";
   plan_id: string;
   expires_at: string | null;
   created_at: string;
@@ -104,7 +104,11 @@ export function PendingPayments({ requests }: PendingPaymentsProps) {
               <td className="p-4 text-muted">
                 {row.paid_from}
                 <p className="text-xs text-muted/70 mt-0.5">
-                  {row.method === "marzpay" ? "MarzPay" : "Manual deposit"}
+                  {row.method === "marzpay"
+                    ? "MarzPay prompt"
+                    : row.method === "link"
+                      ? "MarzPay link — check it arrived"
+                      : "Manual deposit"}
                 </p>
               </td>
               <td className="p-4 text-muted">
