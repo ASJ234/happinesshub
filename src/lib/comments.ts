@@ -45,10 +45,13 @@ export async function fetchComments(
 
   // Rows arrive newest first, so replies are added in reverse to read oldest
   // first under their comment.
+  // Only the newest 300 rows come back, so a reply's comment can be missing;
+  // such a reply is shown on its own rather than dropped.
   const topLevel: VideoComment[] = [];
   for (const comment of comments.values()) {
-    if (comment.parent_id) {
-      comments.get(comment.parent_id)?.replies.unshift(comment);
+    const parent = comment.parent_id ? comments.get(comment.parent_id) : undefined;
+    if (parent) {
+      parent.replies.unshift(comment);
     } else {
       topLevel.push(comment);
     }
