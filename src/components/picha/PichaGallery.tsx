@@ -5,6 +5,7 @@ import { ImageIcon } from "lucide-react";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Spinner } from "@/components/ui/Spinner";
 import { PICHA_PAGE_SIZE, type PichaPhoto } from "@/lib/picha";
+import { sendDelete } from "@/lib/fetch-error";
 import { PhotoLightbox } from "./PhotoLightbox";
 
 interface PichaGalleryProps {
@@ -61,19 +62,15 @@ export function PichaGallery({ initialPhotos, viewerId, viewerIsAdmin }: PichaGa
     [viewerId, viewerIsAdmin]
   );
 
-  async function deletePhoto(photo: PichaPhoto) {
-    const response = await fetch(`/api/picha/${photo.id}`, { method: "DELETE" }).catch(
-      () => null
-    );
-    if (!response?.ok) {
-      alert("Could not delete the photo. Try again.");
-      return;
-    }
+  async function deletePhoto(photo: PichaPhoto): Promise<string | null> {
+    const problem = await sendDelete(`/api/picha/${photo.id}`, "Could not delete the photo");
+    if (problem) return problem;
     const remaining = photos.filter((p) => p.id !== photo.id);
     setPhotos(remaining);
     setOpenIndex((index) =>
       index === null || remaining.length === 0 ? null : Math.min(index, remaining.length - 1)
     );
+    return null;
   }
 
   if (photos.length === 0) {

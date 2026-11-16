@@ -3,7 +3,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useConfirm } from "@/components/ui/useConfirm";
 import type { VideoComment } from "@/lib/comments";
+import { sendDelete } from "@/lib/fetch-error";
 import { CommentForm } from "./CommentForm";
 
 interface CommentListProps {
@@ -45,6 +47,7 @@ function CommentItem({
   nested: boolean;
 }) {
   const router = useRouter();
+  const { ask, dialog } = useConfirm();
   const [replying, setReplying] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -79,9 +82,16 @@ function CommentItem({
   }
 
   function remove() {
-    if (window.confirm("Delete this comment and any replies to it?")) {
-      return act({ method: "DELETE" });
-    }
+    const replies = comment.replies.length;
+    ask({
+      title: isReply ? "Delete this reply?" : "Delete this comment?",
+      description:
+        replies > 0
+          ? `Its ${replies} ${replies === 1 ? "reply" : "replies"} will be deleted too. This can't be undone.`
+          : "This can't be undone.",
+      confirmLabel: isReply ? "Delete reply" : "Delete comment",
+      action: () => sendDelete(`/api/comments/${comment.id}`, "Could not delete the comment"),
+    });
   }
 
   const actionClass =
@@ -95,6 +105,7 @@ function CommentItem({
           : "bg-surface border border-border rounded-xl p-4"
       }
     >
+      {dialog}
       <div className="flex items-start justify-between gap-2 mb-1.5">
         <div className="flex items-center gap-2 min-w-0">
           <div className="w-8 h-8 rounded-full gradient-brand flex items-center justify-center text-white text-xs font-bold shrink-0">

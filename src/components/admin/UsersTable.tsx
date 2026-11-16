@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Save, ShieldCheck, ShieldOff, Trash2 } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { useConfirm } from "@/components/ui/useConfirm";
+import { sendDelete } from "@/lib/fetch-error";
 import { ROLE_LABELS, type Role } from "@/lib/roles";
 
 export interface AdminUserRow {
@@ -29,6 +31,7 @@ interface UsersTableProps {
 
 export function UsersTable({ users, currentUserId }: UsersTableProps) {
   const router = useRouter();
+  const { ask, dialog } = useConfirm();
   const [rows, setRows] = useState(users);
   const [busyId, setBusyId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -65,33 +68,30 @@ export function UsersTable({ users, currentUserId }: UsersTableProps) {
     router.refresh();
   }
 
-  async function deleteUser(row: AdminUserRow) {
-    if (
-      !window.confirm(
-        `Delete @${row.username}? This removes their account and all their videos.`
-      )
-    ) {
-      return;
-    }
-
-    setBusyId(row.id);
-    setMessage(null);
-
-    const response = await fetch(`/api/admin/users?id=${row.id}`, {
-      method: "DELETE",
+  function deleteUser(row: AdminUserRow) {
+    ask({
+      title: `Delete @${row.username}?`,
+      description: (
+        <>
+          Their account is removed with{" "}
+          <span className="text-foreground font-medium">
+            all their videos, photos, profiles and comments
+          </span>
+          . This can&apos;t be undone.
+        </>
+      ),
+      confirmLabel: "Delete account",
+      action: async () => {
+        const problem = await sendDelete(
+          `/api/admin/users?id=${row.id}`,
+          "Could not delete the user"
+        );
+        if (problem) return problem;
+        setRows((prev) => prev.filter((r) => r.id !== row.id));
+        setMessage(`Deleted @${row.username}`);
+        return null;
+      },
     });
-
-    const body = await response.json().catch(() => null);
-    setBusyId(null);
-
-    if (!response.ok) {
-      setMessage(body?.error ?? "Could not delete user");
-      return;
-    }
-
-    setRows((prev) => prev.filter((r) => r.id !== row.id));
-    setMessage(`Deleted ${row.username}`);
-    router.refresh();
   }
 
   async function toggleExempt(row: AdminUserRow) {
@@ -124,6 +124,7 @@ export function UsersTable({ users, currentUserId }: UsersTableProps) {
 
   return (
     <div className="overflow-x-auto">
+      {dialog}
       {message && (
         <p className="px-4 pt-3 text-xs text-muted">{message}</p>
       )}
