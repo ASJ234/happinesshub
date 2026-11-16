@@ -25,7 +25,7 @@ const OPTIONS: RoleOption[] = [
     icon: Clapperboard,
     title: "Creator",
     description:
-      "Upload your own videos and Picha galleries, see their views, and manage your content.",
+      "Upload your own videos, post photos to Picha, see their views, and manage your content.",
   },
   {
     role: "provider",

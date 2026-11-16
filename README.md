@@ -83,6 +83,7 @@ again. Each file ends with a `select` that shows what it created.
 | 25 | `0025_payment_links.sql` | `subscription_plans.payment_link`, the `link` method, `payment_link_events`, `match_link_payment()` |
 | 26 | `0026_gift_topup_links.sql` | `gift_topup_packages`, `gift_deposits.method`, the `cancelled` status, `match_gift_link_payment()` |
 | 27 | `0027_ugx_gift_prices.sql` | prices live gifts in UGX (Rose 500 … Rocket 50,000), adds 20,000 and 50,000 top-ups |
+| 28 | `0028_picha_photos.sql` | `picha_photos` (the Picha photo wall), copies existing Picha profile photos into it |
 
 ### Applying them without the SQL editor
 
@@ -105,7 +106,7 @@ is used as the fallback (unknown slugs fail closed as **paid**).
 
 | Sector | Kind | Access | Rule |
 | --- | --- | --- | --- |
-| Picha | listing | free | photo galleries and picture collections |
+| Picha | photos | free | a photo wall; creators and admins upload, everyone signed in views |
 | Wardrobe | listing | free | vendors selling sex toys, products with a UGX price |
 | Exclusively Ugandan | video | paid | only Ugandan-made videos |
 | Appetizers | video | paid | max 5 minutes |
@@ -246,6 +247,20 @@ https://<your-domain>/api/webhooks/mux
 - Locked playback is enforced twice: app-side (`isVideoUnlocked` in
   `src/lib/videos.ts` and the id-based `can_access_video_by_id()`), and at the
   playback route, which issues signed Bunny embeds only after that check.
+
+## Picha
+
+Picha is a photo wall, not a profile directory. `/dashboard/picha` shows every
+photo in `picha_photos`, newest first, in a grid that loads more as you
+scroll; tapping one opens a full-screen viewer (swipe, arrows, Esc).
+
+- **Upload** (creators and admins): **Upload photos** takes up to 20 at once.
+  Each is shrunk in the browser to 2048 px plus a 640 px preview, and uploaded
+  straight to the public `thumbnails` bucket under `<user id>/picha/`. That
+  keeps uploads off Vercel's 4.5 MB request limit.
+- **Delete**: the uploader or an admin, from the viewer
+  (`DELETE /api/picha/[id]`, which also removes the files).
+- Photos publish immediately; there is no review step.
 
 ## Listings and verification
 

@@ -86,7 +86,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Shorts Studio", href: "/dashboard/shorts-studio", icon: Clapperboard, roles: CREATOR_ROLES, section: "studio" },
   { label: "Live Studio", href: "/dashboard/live-studio", icon: Video, roles: CREATOR_ROLES, section: "studio" },
   { label: "My Content", href: "/dashboard/my-content", icon: FolderOpen, roles: CREATOR_ROLES, section: "studio" },
-  { label: "My Profiles", href: "/dashboard/my-listing", icon: Contact, roles: CREATOR_ROLES, section: "studio" },
+  { label: "My Profiles", href: "/dashboard/my-listing", icon: Contact, roles: ["admin"], section: "studio" },
   { label: "My Profile", href: "/dashboard/my-listing", icon: Contact, roles: ["provider"], section: "studio" },
   { label: "My Shop", href: "/dashboard/my-listing", icon: Store, roles: ["vendor"], section: "studio" },
   { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3, roles: CREATOR_ROLES, section: "studio" },
