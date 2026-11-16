@@ -122,7 +122,11 @@ export default async function AdminPage() {
 
       <Card className="overflow-hidden">
         <div className="p-4 border-b border-border">
-          <h2 className="font-semibold">Payment Details</h2>
+          <h2 className="font-semibold">Gift Credit Deposit Details</h2>
+          <p className="text-xs text-muted mt-0.5">
+            Only for gift-credit top-ups. Subscriptions are paid through the
+            MarzPay payment links above.
+          </p>
         </div>
         <PaymentSettingsForm settings={settingsResult.data} />
       </Card>

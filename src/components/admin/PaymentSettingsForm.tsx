@@ -41,15 +41,16 @@ export function PaymentSettingsForm({ settings }: PaymentSettingsFormProps) {
       return;
     }
 
-    setMessage({ ok: true, text: "Payment details saved" });
+    setMessage({ ok: true, text: "Top-up details saved" });
     router.refresh();
   }
 
   return (
     <div className="p-4 space-y-4">
       <p className="text-sm text-muted">
-        Shown to customers on the Subscription page. Plan prices are managed
-        in the <code className="text-xs">subscription_plans</code> table.
+        Users send gift-credit top-ups to this number, then enter the
+        transaction reference for you to approve. It is shown on the gift
+        credit form on the Subscription and Monetization pages.
       </p>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <div>
@@ -63,7 +64,7 @@ export function PaymentSettingsForm({ settings }: PaymentSettingsFormProps) {
         </div>
         <div>
           <label className="text-sm text-muted block mb-1.5">
-            Deposit number
+            Top-up number
           </label>
           <input
             type="text"
@@ -80,7 +81,7 @@ export function PaymentSettingsForm({ settings }: PaymentSettingsFormProps) {
           className="inline-flex items-center gap-2 bg-primary hover:bg-primary-hover text-white text-sm font-medium py-2.5 px-4 rounded-lg transition-colors disabled:opacity-60"
         >
           <Save size={15} />
-          {saving ? "Saving..." : "Save payment details"}
+          {saving ? "Saving..." : "Save top-up details"}
         </button>
         {message && (
           <span
