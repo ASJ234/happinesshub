@@ -99,6 +99,22 @@ export interface BunnyVideoDetails {
   length: number;
   width: number;
   height: number;
+  /** Qualities ready so far, e.g. "240p,360p"; empty until the first one is. */
+  availableResolutions?: string | null;
+  /** Encoding progress, 0-100. */
+  encodeProgress?: number | null;
+}
+
+/**
+ * True once at least one quality can be streamed. Bunny's player starts with
+ * what is ready and adds the higher qualities as they finish, so viewers
+ * don't have to wait for the whole encode.
+ */
+export function isBunnyPlayable(details: BunnyVideoDetails): boolean {
+  return (
+    details.status === BunnyVideoStatus.Finished ||
+    Boolean(details.availableResolutions?.trim())
+  );
 }
 
 export async function getBunnyVideo(guid: string): Promise<BunnyVideoDetails> {

@@ -54,13 +54,16 @@ export async function GET(
   }
 
   let bunnyStatus: string | null = video.bunny_status;
+  let progress: number | null = null;
   if (
     video.bunny_video_id &&
     bunnyStatus !== "ready" &&
     bunnyStatus !== "errored"
   ) {
     try {
-      bunnyStatus = (await syncBunnyVideo(video.bunny_video_id)) ?? bunnyStatus;
+      const sync = await syncBunnyVideo(video.bunny_video_id);
+      bunnyStatus = sync.state ?? bunnyStatus;
+      progress = sync.progress;
     } catch (syncError) {
       console.warn(`[stream] Bunny sync failed for ${id}: ${String(syncError)}`);
     }
@@ -90,7 +93,7 @@ export async function GET(
   }
 
   return NextResponse.json(
-    { error: "This video is still processing", processing: true },
+    { error: "This video is still processing", processing: true, progress },
     { status: 409 }
   );
 }

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   BunnyWebhookStatus,
   getBunnyVideo,
+  isBunnyPlayable,
   isBunnyWebhookConfigured,
   verifyBunnyWebhook,
 } from "@/lib/bunny";
@@ -20,7 +21,6 @@ const IN_PROGRESS: readonly number[] = [
   BunnyWebhookStatus.Queued,
   BunnyWebhookStatus.Processing,
   BunnyWebhookStatus.Encoding,
-  BunnyWebhookStatus.ResolutionFinished,
   BunnyWebhookStatus.UploadStarted,
   BunnyWebhookStatus.UploadFinished,
 ];
@@ -71,6 +71,15 @@ export async function POST(request: Request) {
   try {
     if (status === BunnyWebhookStatus.Finished) {
       await markBunnyVideoReady(admin, guid, await getBunnyVideo(guid));
+    } else if (status === BunnyWebhookStatus.ResolutionFinished) {
+      // The first quality is ready: viewers can start watching now.
+      const details = await getBunnyVideo(guid);
+      if (isBunnyPlayable(details)) {
+        await markBunnyVideoReady(admin, guid, details);
+      } else {
+        const { error } = await unlessReady({ bunny_status: "processing", bunny_error: null });
+        if (error) throw error;
+      }
     } else if (IN_PROGRESS.includes(status)) {
       const { error } = await unlessReady({
         bunny_status: "processing",

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Script from "next/script";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { VideoProcessing } from "./VideoProcessing";
 
 interface VideoPlayerProps {
   videoId: string;
@@ -21,6 +22,8 @@ declare global {
     playerjs?: { Player: new (iframe: HTMLIFrameElement) => PlayerJsPlayer };
   }
 }
+
+const PROCESSING_RETRY_MS = 5000;
 
 const PLAYERJS_URL =
   "https://assets.mediadelivery.net/playerjs/playerjs-latest.min.js";
@@ -42,32 +45,47 @@ export function VideoPlayer({
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [counted, setCounted] = useState<boolean | null>(null);
+  /** Bunny's progress while the video is still being prepared. */
+  const [processing, setProcessing] = useState<number | null | undefined>(undefined);
   const [playerScript, setPlayerScript] = useState<
     "loading" | "ready" | "failed"
   >("loading");
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const recorded = useRef(false);
 
+  // Asks for playback; while Bunny is still preparing a fresh upload, asks
+  // again every few seconds and starts the player once it is ready.
   useEffect(() => {
     let cancelled = false;
+    let retry: ReturnType<typeof setTimeout> | undefined;
 
-    fetch(`/api/videos/${videoId}/stream`)
-      .then(async (response) => {
+    async function load() {
+      try {
+        const response = await fetch(`/api/videos/${videoId}/stream`);
         const body = await response.json().catch(() => null);
+        if (cancelled) return;
+
+        if (response.status === 409 && body?.processing) {
+          setProcessing(typeof body.progress === "number" ? body.progress : null);
+          setLoading(false);
+          retry = setTimeout(load, PROCESSING_RETRY_MS);
+          return;
+        }
         if (!response.ok) {
           throw new Error(body?.error ?? "Could not start playback");
         }
-        if (!cancelled) setEmbedUrl((body as { embedUrl: string }).embedUrl);
-      })
-      .catch((err: Error) => {
-        if (!cancelled) setError(err.message);
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false);
-      });
+        setProcessing(undefined);
+        setEmbedUrl((body as { embedUrl: string }).embedUrl);
+      } catch (err) {
+        if (!cancelled) setError(err instanceof Error ? err.message : "Could not start playback");
+      }
+      if (!cancelled) setLoading(false);
+    }
 
+    load();
     return () => {
       cancelled = true;
+      clearTimeout(retry);
     };
   }, [videoId]);
 
@@ -125,6 +143,10 @@ export function VideoPlayer({
         <Loader2 size={22} className="animate-spin" />
       </div>
     );
+  }
+
+  if (processing !== undefined && !embedUrl) {
+    return <VideoProcessing progress={processing} />;
   }
 
   if (error || !embedUrl) {
