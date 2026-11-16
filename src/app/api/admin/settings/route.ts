@@ -13,8 +13,6 @@ export async function PATCH(request: Request) {
     site_name?: string;
     support_whatsapp?: string;
     support_message?: string;
-    payout_method?: string;
-    payout_account?: string;
     monthly_pool?: number;
     live_allowed_weekdays?: number[];
   };
@@ -36,12 +34,6 @@ export async function PATCH(request: Request) {
   }
   if (typeof body.support_message === "string") {
     update.support_message = body.support_message.trim().slice(0, 200);
-  }
-  if (typeof body.payout_method === "string") {
-    update.payout_method = body.payout_method.trim().slice(0, 20);
-  }
-  if (typeof body.payout_account === "string") {
-    update.payout_account = body.payout_account.trim().slice(0, 80);
   }
   if (typeof body.monthly_pool === "number" && Number.isFinite(body.monthly_pool)) {
     update.monthly_pool = Math.max(0, body.monthly_pool);

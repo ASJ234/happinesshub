@@ -4,7 +4,11 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Banknote, X } from "lucide-react";
 import { StatusBadge } from "@/components/ui/StatusBadge";
-import { money, type WithdrawalRow } from "@/lib/wallet";
+import { money, PAYOUT_METHODS, type WithdrawalRow } from "@/lib/wallet";
+
+function methodLabel(method: string): string {
+  return PAYOUT_METHODS.find((m) => m.value === method)?.label ?? method;
+}
 
 export function WithdrawalTable({ withdrawals }: { withdrawals: WithdrawalRow[] }) {
   const router = useRouter();
@@ -13,6 +17,12 @@ export function WithdrawalTable({ withdrawals }: { withdrawals: WithdrawalRow[] 
   const [message, setMessage] = useState<string | null>(null);
 
   async function review(withdrawal: WithdrawalRow, action: "pay" | "reject") {
+    const question =
+      action === "pay"
+        ? `Have you sent ${money(withdrawal.amount)} to ${withdrawal.account} (${methodLabel(withdrawal.method)})? This marks it as paid.`
+        : `Reject this ${money(withdrawal.amount)} withdrawal? The money goes back to the creator's balance.`;
+    if (!window.confirm(question)) return;
+
     setBusyId(withdrawal.id);
     setMessage(null);
 
@@ -79,15 +89,13 @@ export function WithdrawalTable({ withdrawals }: { withdrawals: WithdrawalRow[] 
                   "Unknown"}
               </td>
               <td className="p-4 font-medium">{money(withdrawal.amount)}</td>
-              <td className="p-4 text-muted text-xs uppercase">
-                {withdrawal.method}
-              </td>
+              <td className="p-4 text-muted text-xs">{methodLabel(withdrawal.method)}</td>
               <td className="p-4 text-muted text-xs">{withdrawal.account}</td>
               <td className="p-4">
                 <StatusBadge
                   status={
                     withdrawal.status === "paid"
-                      ? "Approved"
+                      ? "Paid"
                       : withdrawal.status === "rejected"
                         ? "Rejected"
                         : "Pending review"

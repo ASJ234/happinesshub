@@ -13,7 +13,7 @@ export default async function AdminSettingsPage() {
     supabase
       .from("app_settings")
       .select(
-        "site_name, support_whatsapp, support_message, payout_method, payout_account, monthly_pool, live_allowed_weekdays"
+        "site_name, support_whatsapp, support_message, monthly_pool, live_allowed_weekdays"
       )
       .eq("id", true)
       .maybeSingle(),
@@ -37,8 +37,6 @@ export default async function AdminSettingsPage() {
             site_name: "HAPPYPORN.COM",
             support_whatsapp: "+256700000000",
             support_message: "Hi, I need help with HAPPYPORN.COM",
-            payout_method: "mtn",
-            payout_account: "",
             monthly_pool: 0,
             live_allowed_weekdays: [3, 5, 6, 7],
           }

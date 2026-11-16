@@ -17,7 +17,7 @@ export default async function AdminWalletPage() {
     fetchWithdrawals(supabase),
     supabase
       .from("app_settings")
-      .select("monthly_pool, payout_method, payout_account")
+      .select("monthly_pool")
       .eq("id", true)
       .maybeSingle(),
     supabase.from("wallets").select("balance, user_id"),

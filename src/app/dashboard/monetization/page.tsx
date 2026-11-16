@@ -5,6 +5,7 @@ import { fetchGiftTopUpState } from "@/lib/gift-topups";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { WalletPanel } from "@/components/wallet/WalletPanel";
 import {
+  fetchPayoutAccount,
   fetchTransactions,
   fetchWallet,
   fetchWithdrawals,
@@ -15,16 +16,12 @@ export default async function MonetizationPage() {
 
   const supabase = await createClient();
 
-  const [wallet, transactions, withdrawals, settings, giftBalance, topUp] =
+  const [wallet, transactions, withdrawals, savedAccount, giftBalance, topUp] =
     await Promise.all([
       fetchWallet(supabase, user.id),
       fetchTransactions(supabase, user.id),
       fetchWithdrawals(supabase, user.id),
-      supabase
-        .from("app_settings")
-        .select("payout_method, payout_account")
-        .eq("id", true)
-        .maybeSingle(),
+      fetchPayoutAccount(supabase, user.id),
       supabase.rpc("gift_balance").then(({ data }) => Number(data ?? 0)),
       fetchGiftTopUpState(supabase, user.id),
     ]);
@@ -42,8 +39,7 @@ export default async function MonetizationPage() {
         lifetimeEarnings={wallet.lifetimeEarnings}
         transactions={transactions}
         withdrawals={withdrawals}
-        payoutMethod={settings.data?.payout_method ?? "mtn"}
-        payoutAccount={settings.data?.payout_account ?? ""}
+        savedAccount={savedAccount}
         giftBalance={giftBalance}
         topUp={topUp}
       />

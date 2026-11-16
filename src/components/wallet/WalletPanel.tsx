@@ -1,16 +1,15 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Banknote, Gift, Wallet } from "lucide-react";
 import {
   money,
   transactionLabel,
+  type PayoutAccount,
   type WalletTransactionRow,
   type WithdrawalRow,
 } from "@/lib/wallet";
-import { inputClass } from "@/components/ui/styles";
 import { GiftTopUpForm } from "./GiftTopUpForm";
+import { WithdrawForm } from "./WithdrawForm";
 import type { GiftTopUpState } from "@/lib/gift-topups";
 
 interface WalletPanelProps {
@@ -18,8 +17,8 @@ interface WalletPanelProps {
   lifetimeEarnings: number;
   transactions: WalletTransactionRow[];
   withdrawals: WithdrawalRow[];
-  payoutMethod: string;
-  payoutAccount: string;
+  /** The creator's payout details from their last withdrawal. */
+  savedAccount: PayoutAccount | null;
   giftBalance: number;
   topUp: GiftTopUpState;
 }
@@ -30,49 +29,12 @@ export function WalletPanel({
   lifetimeEarnings,
   transactions,
   withdrawals,
-  payoutMethod,
-  payoutAccount,
+  savedAccount,
   giftBalance,
   topUp,
 }: WalletPanelProps) {
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [notice, setNotice] = useState<string | null>(null);
-
-  const [amount, setAmount] = useState("");
-  const [method, setMethod] = useState(payoutMethod || "mtn");
-  const [account, setAccount] = useState(payoutAccount || "");
-
-  async function withdraw() {
-    setBusy(true);
-    setError(null);
-    setNotice(null);
-
-    const response = await fetch("/api/wallet/withdraw", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ amount: Number(amount), method, account }),
-    });
-
-    const body = await response.json().catch(() => null);
-    setBusy(false);
-
-    if (!response.ok) {
-      setError(body?.error ?? "Could not request the withdrawal");
-      return;
-    }
-
-    setNotice("Withdrawal requested. The amount is on hold until an admin pays it.");
-    setAmount("");
-    router.refresh();
-  }
-
   return (
     <div className="space-y-6">
-      {error && <p className="text-sm text-red-400">{error}</p>}
-      {notice && <p className="text-sm text-green-400">{notice}</p>}
-
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-surface border border-border rounded-xl p-5">
           <div className="w-10 h-10 rounded-lg bg-primary/20 text-primary flex items-center justify-center mb-3">
@@ -98,76 +60,11 @@ export function WalletPanel({
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-surface border border-border rounded-2xl p-5 space-y-4">
-          <h2 className="font-semibold">Withdraw</h2>
-          <p className="text-xs text-muted">
-            The amount is held right away and refunded if the request is
-            rejected.
-          </p>
-
-          <div>
-            <label className="text-sm text-muted block mb-1.5">Amount</label>
-            <input
-              type="number"
-              min="1"
-              step="0.01"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              className={inputClass}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm text-muted block mb-1.5">Method</label>
-              <select
-                value={method}
-                onChange={(e) => setMethod(e.target.value)}
-                className={inputClass}
-              >
-                <option value="mtn">MTN Mobile Money</option>
-                <option value="airtel">Airtel Money</option>
-                <option value="bank">Bank transfer</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-sm text-muted block mb-1.5">Account</label>
-              <input
-                type="text"
-                value={account}
-                onChange={(e) => setAccount(e.target.value)}
-                className={inputClass}
-              />
-            </div>
-          </div>
-
-          <button
-            onClick={withdraw}
-            disabled={busy || !Number(amount) || !account.trim()}
-            className="bg-primary hover:bg-primary-hover text-white text-sm font-medium py-2.5 px-4 rounded-lg transition-colors disabled:opacity-50"
-          >
-            {busy ? "Sending..." : "Request withdrawal"}
-          </button>
-
-          {withdrawals.length > 0 && (
-            <div className="border-t border-border pt-3 space-y-2">
-              {withdrawals.slice(0, 5).map((withdrawal) => (
-                <div
-                  key={withdrawal.id}
-                  className="flex items-center justify-between text-xs"
-                >
-                  <span className="text-muted">
-                    {new Date(withdrawal.created_at).toLocaleDateString()}
-                  </span>
-                  <span className="font-medium">
-                    {money(withdrawal.amount)}
-                  </span>
-                  <span className="text-muted capitalize">{withdrawal.status}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
+        <WithdrawForm
+          balance={balance}
+          savedAccount={savedAccount}
+          withdrawals={withdrawals}
+        />
 
         <GiftTopUpForm topUp={topUp} />
       </div>
@@ -204,8 +101,8 @@ export function WalletPanel({
                       : "text-red-400 font-medium"
                   }
                 >
-                  {transaction.amount >= 0 ? "+" : ""}
-                  {money(transaction.amount)}
+                  {transaction.amount >= 0 ? "+" : "−"}
+                  {money(Math.abs(transaction.amount))}
                 </span>
               </div>
             ))}

@@ -84,6 +84,7 @@ again. Each file ends with a `select` that shows what it created.
 | 26 | `0026_gift_topup_links.sql` | `gift_topup_packages`, `gift_deposits.method`, the `cancelled` status, `match_gift_link_payment()` |
 | 27 | `0027_ugx_gift_prices.sql` | prices live gifts in UGX (Rose 500 … Rocket 50,000), adds 20,000 and 50,000 top-ups |
 | 28 | `0028_picha_photos.sql` | `picha_photos` (the Picha photo wall), copies existing Picha profile photos into it |
+| 29 | `0029_withdrawal_fixes.sql` | per-creator `payout_accounts`, UGX 1,000 minimum, refunds no longer count as lifetime earnings, wallet locked during a withdrawal |
 
 ### Applying them without the SQL editor
 
