@@ -101,6 +101,24 @@ export function VideoPlayer({
     player.on("ready", () => player.on("play", recordView));
   }, [countsViews, playerScript, embedUrl, recordView]);
 
+  // Backup for when Player.js is blocked (ad blockers) or never answers: a tap
+  // into the player moves focus into its frame, which blurs this window. That
+  // is the viewer starting the video. recordView only ever reports once, and
+  // the server still applies its own once-a-day rule for free viewers.
+  useEffect(() => {
+    if (!countsViews || !embedUrl) return;
+    function onBlur() {
+      // Focus lands on the frame just after the blur event.
+      setTimeout(() => {
+        if (iframeRef.current && document.activeElement === iframeRef.current) {
+          recordView();
+        }
+      }, 0);
+    }
+    window.addEventListener("blur", onBlur);
+    return () => window.removeEventListener("blur", onBlur);
+  }, [countsViews, embedUrl, recordView]);
+
   if (loading) {
     return (
       <div className="w-full h-64 bg-black rounded-xl border border-border flex items-center justify-center text-muted">

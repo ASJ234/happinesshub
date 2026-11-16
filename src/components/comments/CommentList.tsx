@@ -25,6 +25,7 @@ export function CommentList({
           comment={comment}
           canReply={canReply}
           showVideoTitle={showVideoTitle}
+          nested={false}
         />
       ))}
     </div>
@@ -35,10 +36,13 @@ function CommentItem({
   comment,
   canReply,
   showVideoTitle,
+  nested,
 }: {
   comment: VideoComment;
   canReply: boolean;
   showVideoTitle: boolean;
+  /** Shown under its comment. A reply whose comment wasn't loaded isn't. */
+  nested: boolean;
 }) {
   const router = useRouter();
   const [replying, setReplying] = useState(false);
@@ -86,7 +90,7 @@ function CommentItem({
   return (
     <div
       className={
-        isReply
+        nested
           ? "pl-4 border-l border-border"
           : "bg-surface border border-border rounded-xl p-4"
       }
@@ -98,12 +102,12 @@ function CommentItem({
           </div>
           <div className="min-w-0">
             <p className="text-sm font-medium truncate">{comment.author_name}</p>
-            {showVideoTitle && !isReply && (
+            {showVideoTitle && !nested && (
               <Link
                 href={`/dashboard/watch/${comment.video_id}`}
                 className="block text-[11px] text-muted hover:text-foreground truncate"
               >
-                on {comment.video_title}
+                {isReply ? "reply on" : "on"} {comment.video_title}
               </Link>
             )}
           </div>
@@ -171,6 +175,7 @@ function CommentItem({
               comment={reply}
               canReply={canReply}
               showVideoTitle={false}
+              nested
             />
           ))}
         </div>
