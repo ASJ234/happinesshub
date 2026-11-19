@@ -7,7 +7,9 @@ import { createHash, createHmac, timingSafeEqual } from "node:crypto";
  */
 
 const API_BASE = "https://video.bunnycdn.com";
-const EMBED_BASE = "https://player.mediadelivery.net/embed";
+const PLAYER_ORIGIN = "https://player.mediadelivery.net";
+const EMBED_BASE = `${PLAYER_ORIGIN}/embed`;
+const ASSETS_ORIGIN = "https://assets.mediadelivery.net";
 const UPLOAD_TTL_SECONDS = 24 * 60 * 60;
 const EMBED_TTL_SECONDS = 6 * 60 * 60;
 
@@ -171,6 +173,27 @@ export function signBunnyEmbedUrl(guid: string): string {
   url.searchParams.set("expires", String(expires));
   url.searchParams.set("autoplay", "true");
   return url.toString();
+}
+
+/**
+ * Hosts the watch page should open connections to early, so the player and
+ * the first video segments don't each pay for a fresh DNS + TLS handshake.
+ * The pull-zone host (e.g. vz-xxxx.b-cdn.net) is optional; it serves the
+ * segments, which the player fetches with CORS.
+ */
+export function bunnyPreconnectOrigins(): {
+  origin: string;
+  crossOrigin?: "anonymous";
+}[] {
+  const origins: { origin: string; crossOrigin?: "anonymous" }[] = [
+    { origin: PLAYER_ORIGIN },
+    { origin: ASSETS_ORIGIN },
+  ];
+  const cdnHost = process.env.BUNNY_STREAM_CDN_HOSTNAME?.trim();
+  if (cdnHost) {
+    origins.push({ origin: `https://${cdnHost}`, crossOrigin: "anonymous" });
+  }
+  return origins;
 }
 
 export function verifyBunnyWebhook(

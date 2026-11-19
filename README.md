@@ -32,6 +32,7 @@ BUNNY_STREAM_LIBRARY_ID=...
 BUNNY_STREAM_API_KEY=...             # library API key: uploads
 BUNNY_STREAM_READ_ONLY_API_KEY=...   # library read-only key: webhook signature
 BUNNY_STREAM_TOKEN_KEY=...           # Security > Token authentication key
+BUNNY_STREAM_CDN_HOSTNAME=...        # optional: pull-zone host (vz-xxxx.b-cdn.net), preconnected on watch pages
 
 # Mux live streaming
 MUX_TOKEN_ID=...
@@ -150,9 +151,11 @@ Regular videos are hosted on **Bunny Stream**. Mux is used for live streams only
    signature-verified and, when encoding finishes, stores `bunny_status`,
    duration, dimensions and aspect on the row.
 
-Playback stays behind the app's paywall. `/api/videos/[id]/stream` performs the
-admin/owner/free-sector/subscription check, then returns a short-lived signed
-embed URL that `VideoPlayer` loads in an iframe. Views are recorded from the
+Playback stays behind the app's paywall. The watch page performs the
+admin/owner/free-sector/subscription check and, for a ready video, signs a
+short-lived embed URL on the server so `VideoPlayer` can load it in an iframe
+immediately. Videos still encoding fall back to `/api/videos/[id]/stream`,
+which runs the same check and polls Bunny until the video is playable. Views are recorded from the
 player's Player.js `play` event. Deleting a video also deletes it from Bunny.
 
 ### Bunny library setup

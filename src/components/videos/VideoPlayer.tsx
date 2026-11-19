@@ -7,6 +7,11 @@ import { VideoProcessing } from "./VideoProcessing";
 
 interface VideoPlayerProps {
   videoId: string;
+  /**
+   * Signed embed issued by the watch page after its access check. When set,
+   * the player starts straight away; otherwise it asks the stream route.
+   */
+  initialEmbedUrl?: string | null;
   /** False for owners and admins, whose plays are never counted. */
   countsViews: boolean;
   width?: number | null;
@@ -29,21 +34,23 @@ const PLAYERJS_URL =
   "https://assets.mediadelivery.net/playerjs/playerjs-latest.min.js";
 
 /**
- * Asks the server for a signed embed after the access check, then records a
+ * Plays the signed embed the watch page issued, or asks the stream route for
+ * one (and polls while Bunny is still processing), then records a
  * view when playback starts. Free viewers are counted once per video per day;
  * subscribers are counted on every play. The server decides, this only reports
  * the outcome back.
  */
 export function VideoPlayer({
   videoId,
+  initialEmbedUrl,
   countsViews,
   width,
   height,
 }: VideoPlayerProps) {
   const isVertical = Boolean(width && height && height > width);
-  const [embedUrl, setEmbedUrl] = useState<string | null>(null);
+  const [embedUrl, setEmbedUrl] = useState<string | null>(initialEmbedUrl ?? null);
   const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!initialEmbedUrl);
   const [counted, setCounted] = useState<boolean | null>(null);
   /** Bunny's progress while the video is still being prepared. */
   const [processing, setProcessing] = useState<number | null | undefined>(undefined);
@@ -56,6 +63,7 @@ export function VideoPlayer({
   // Asks for playback; while Bunny is still preparing a fresh upload, asks
   // again every few seconds and starts the player once it is ready.
   useEffect(() => {
+    if (initialEmbedUrl) return;
     let cancelled = false;
     let retry: ReturnType<typeof setTimeout> | undefined;
 
@@ -87,7 +95,7 @@ export function VideoPlayer({
       cancelled = true;
       clearTimeout(retry);
     };
-  }, [videoId]);
+  }, [videoId, initialEmbedUrl]);
 
   const recordView = useCallback(async () => {
     if (recorded.current) return;
@@ -103,8 +111,10 @@ export function VideoPlayer({
     }
   }, [videoId]);
 
-  // The iframe only renders once the script has settled, so the listener is
-  // attached before the player can announce that it is ready.
+  // Player.js loads alongside the iframe instead of holding it back, so the
+  // video starts as early as possible. If the player is already ready when the
+  // listener attaches, Player.js still reports "ready" on request; the blur
+  // fallback below covers anything it misses.
   useEffect(() => {
     if (
       !countsViews ||
@@ -161,6 +171,7 @@ export function VideoPlayer({
     <div className="space-y-2">
       <Script
         src={PLAYERJS_URL}
+        strategy="afterInteractive"
         onReady={() => setPlayerScript("ready")}
         onError={() => setPlayerScript("failed")}
       />
@@ -169,23 +180,21 @@ export function VideoPlayer({
           isVertical ? "h-[70vh]" : "aspect-video max-h-[70vh]"
         }`}
       >
-        {playerScript !== "loading" && (
-          <iframe
-            ref={iframeRef}
-            src={embedUrl}
-            title="Video player"
-            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-            allowFullScreen
-            referrerPolicy="strict-origin-when-cross-origin"
-            // The frame always fills the box and the player letterboxes the
-            // video inside it, so fullscreen keeps it centred. Sizing the frame
-            // itself to the video's shape pushed it to the left in fullscreen.
-            // The site is color-scheme: dark. A light-scheme embed in a dark
-            // page gets an opaque white canvas, so the frame has to match it,
-            // which keeps it transparent over the black box.
-            className="[color-scheme:light] absolute inset-0 w-full h-full"
-          />
-        )}
+        <iframe
+          ref={iframeRef}
+          src={embedUrl}
+          title="Video player"
+          allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+          allowFullScreen
+          referrerPolicy="strict-origin-when-cross-origin"
+          // The frame always fills the box and the player letterboxes the
+          // video inside it, so fullscreen keeps it centred. Sizing the frame
+          // itself to the video's shape pushed it to the left in fullscreen.
+          // The site is color-scheme: dark. A light-scheme embed in a dark
+          // page gets an opaque white canvas, so the frame has to match it,
+          // which keeps it transparent over the black box.
+          className="[color-scheme:light] absolute inset-0 w-full h-full"
+        />
       </div>
       {counted !== null && (
         <p className="text-[11px] text-muted flex items-center gap-1.5">
