@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
 import { fetchCategoryAccess } from "@/lib/categories";
 import { signBunnyEmbedUrl } from "@/lib/bunny";
-import { syncBunnyVideo } from "@/lib/bunny-sync";
+import { syncBunnyVideoThrottled } from "@/lib/bunny-sync";
 import { hasActiveSubscription, isVideoUnlocked } from "@/lib/videos";
 import { createClient } from "@/lib/supabase/server";
 
@@ -16,19 +16,22 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params;
-  const user = await getCurrentUser();
+  const supabase = await createClient();
+  // The video lookup runs under the same session cookie, so it doesn't need
+  // to wait for the user lookup.
+  const [user, { data: video, error }] = await Promise.all([
+    getCurrentUser(),
+    supabase
+      .from("videos")
+      .select(
+        "id, creator_id, category, status, bunny_video_id, bunny_status, bunny_error"
+      )
+      .eq("id", id)
+      .maybeSingle(),
+  ]);
   if (!user) {
     return NextResponse.json({ error: "Sign in required" }, { status: 401 });
   }
-
-  const supabase = await createClient();
-  const { data: video, error } = await supabase
-    .from("videos")
-    .select(
-      "id, creator_id, category, status, bunny_video_id, bunny_status, bunny_error"
-    )
-    .eq("id", id)
-    .maybeSingle();
 
   if (error || !video) {
     return NextResponse.json({ error: "Video not found" }, { status: 404 });
@@ -61,7 +64,7 @@ export async function GET(
     bunnyStatus !== "errored"
   ) {
     try {
-      const sync = await syncBunnyVideo(video.bunny_video_id);
+      const sync = await syncBunnyVideoThrottled(video.bunny_video_id);
       bunnyStatus = sync.state ?? bunnyStatus;
       progress = sync.progress;
     } catch (syncError) {

@@ -28,7 +28,9 @@ declare global {
   }
 }
 
-const PROCESSING_RETRY_MS = 5000;
+/** Polling while Bunny prepares a video: starts quick, backs off to a minute. */
+const PROCESSING_RETRY_MIN_MS = 5_000;
+const PROCESSING_RETRY_MAX_MS = 60_000;
 
 const PLAYERJS_URL =
   "https://assets.mediadelivery.net/playerjs/playerjs-latest.min.js";
@@ -61,11 +63,12 @@ export function VideoPlayer({
   const recorded = useRef(false);
 
   // Asks for playback; while Bunny is still preparing a fresh upload, asks
-  // again every few seconds and starts the player once it is ready.
+  // again (less often each time) and starts the player once it is ready.
   useEffect(() => {
     if (initialEmbedUrl) return;
     let cancelled = false;
     let retry: ReturnType<typeof setTimeout> | undefined;
+    let retryDelay = PROCESSING_RETRY_MIN_MS;
 
     async function load() {
       try {
@@ -76,7 +79,8 @@ export function VideoPlayer({
         if (response.status === 409 && body?.processing) {
           setProcessing(typeof body.progress === "number" ? body.progress : null);
           setLoading(false);
-          retry = setTimeout(load, PROCESSING_RETRY_MS);
+          retry = setTimeout(load, retryDelay);
+          retryDelay = Math.min(retryDelay * 2, PROCESSING_RETRY_MAX_MS);
           return;
         }
         if (!response.ok) {
