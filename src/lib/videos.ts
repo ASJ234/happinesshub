@@ -130,7 +130,12 @@ export async function fetchVideos(
     query = query.not("category", "in", `(${excludeCategories.join(",")})`);
   }
   if (creatorId) query = query.eq("creator_id", creatorId);
-  if (publishedOnly) query = query.eq("status", "published");
+  // Published listings only show videos Bunny can play; a video still
+  // encoding (or stuck) would open on a "processing" screen. Creators still
+  // see their own unready uploads via publishedOnly: false.
+  if (publishedOnly) {
+    query = query.eq("status", "published").eq("bunny_status", "ready");
+  }
   if (search) {
     // Escape the LIKE wildcards so user input matches literally.
     const escaped = search

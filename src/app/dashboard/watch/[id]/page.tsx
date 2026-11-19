@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { preconnect } from "react-dom";
 import { ArrowLeft, CreditCard, Eye, Lock } from "lucide-react";
 import { requireUser } from "@/lib/auth";
+import { bunnyPreconnectOrigins, signBunnyEmbedUrl } from "@/lib/bunny";
 import { fetchCategoryAccess } from "@/lib/categories";
 import { createClient } from "@/lib/supabase/server";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -44,6 +46,26 @@ export default async function WatchPage({
   ]);
   const unlocked = isVideoUnlocked(video, user, subscribed, accessMap);
 
+  // The access check above is the same one /api/videos/[id]/stream runs, so a
+  // ready video gets its signed embed here and the player starts without an
+  // extra round trip. Videos still processing fall back to the stream route,
+  // which polls Bunny until they are playable.
+  let embedUrl: string | null = null;
+  if (unlocked) {
+    for (const { origin, crossOrigin } of bunnyPreconnectOrigins()) {
+      preconnect(origin, crossOrigin ? { crossOrigin } : undefined);
+    }
+    if (video.bunny_video_id && video.bunny_status === "ready") {
+      try {
+        embedUrl = signBunnyEmbedUrl(video.bunny_video_id);
+      } catch (signError) {
+        console.warn(
+          `[watch] could not sign Bunny playback for ${id}: ${String(signError)}`
+        );
+      }
+    }
+  }
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -64,6 +86,7 @@ export default async function WatchPage({
         <div className="space-y-4">
           <VideoPlayer
             videoId={video.id}
+            initialEmbedUrl={embedUrl}
             countsViews={!isOwnVideo && !isAdmin}
             width={video.width}
             height={video.height}
