@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { RefreshCw } from "lucide-react";
 import { chipButtonClass } from "@/components/ui/styles";
 import { readError } from "@/lib/fetch-error";
-import type { BunnyResyncSummary, BunnyResyncVideo } from "@/lib/bunny-sync";
+import type { BunnyResyncSummary } from "@/lib/bunny-sync";
 import { ResyncResultList } from "./ResyncResultList";
 
 interface ResyncVideosButtonProps {
@@ -26,8 +26,27 @@ function describe(summary: BunnyResyncSummary): string {
 export function ResyncVideosButton({ stuckCount }: ResyncVideosButtonProps) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-  const [unready, setUnready] = useState<BunnyResyncVideo[]>([]);
+  const [summary, setSummary] = useState<BunnyResyncSummary | null>(null);
+  const [problem, setProblem] = useState<string | null>(null);
+  const unready = summary?.unready ?? [];
+  const message = problem ?? (summary ? describe(summary) : null);
+
+  function removeDeleted(videoId: string) {
+    setSummary((current) => {
+      if (!current) return current;
+      const gone = current.unready.find((video) => video.id === videoId);
+      if (!gone) return current;
+      const counts = { ...current, checked: current.checked - 1 };
+      if (gone.outcome === "never_uploaded") counts.neverUploaded--;
+      else if (gone.outcome === "encoding") counts.stillProcessing--;
+      else if (gone.outcome === "errored") counts.errored--;
+      else if (gone.outcome === "check_failed") counts.failed--;
+      const remaining = current.unready.filter((video) => video.id !== videoId);
+      // Nothing left to report once the last unready video is deleted.
+      if (remaining.length === 0 && counts.ready === 0) return null;
+      return { ...counts, unready: remaining };
+    });
+  }
 
   if (stuckCount === 0 && !message) {
     return <p className="text-xs text-muted">Every video is synced with Bunny</p>;
@@ -35,20 +54,18 @@ export function ResyncVideosButton({ stuckCount }: ResyncVideosButtonProps) {
 
   async function resync() {
     setBusy(true);
-    setMessage(null);
-    setUnready([]);
+    setSummary(null);
+    setProblem(null);
     try {
       const response = await fetch("/api/admin/videos/resync", { method: "POST" });
       if (response.ok) {
-        const summary = (await response.json()) as BunnyResyncSummary;
-        setMessage(describe(summary));
-        setUnready(summary.unready);
+        setSummary((await response.json()) as BunnyResyncSummary);
       } else {
-        setMessage(await readError(response, "Could not check the videos with Bunny"));
+        setProblem(await readError(response, "Could not check the videos with Bunny"));
       }
       router.refresh();
     } catch {
-      setMessage("Can't reach the server. Check your connection and try again.");
+      setProblem("Can't reach the server. Check your connection and try again.");
     } finally {
       setBusy(false);
     }
@@ -71,7 +88,7 @@ export function ResyncVideosButton({ stuckCount }: ResyncVideosButtonProps) {
           ask the creator to upload it again.
         </p>
       )}
-      <ResyncResultList videos={unready} />
+      <ResyncResultList videos={unready} onDeleted={removeDeleted} />
     </div>
   );
 }

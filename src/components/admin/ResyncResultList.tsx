@@ -26,8 +26,13 @@ const outcomeColor: Record<BunnyResyncOutcome, string> = {
   ready: "text-green-400",
 };
 
+interface ResyncResultListProps {
+  videos: BunnyResyncVideo[];
+  onDeleted: (videoId: string) => void;
+}
+
 /** The videos a Bunny re-check left unready, with what Bunny said about each. */
-export function ResyncResultList({ videos }: { videos: BunnyResyncVideo[] }) {
+export function ResyncResultList({ videos, onDeleted }: ResyncResultListProps) {
   if (videos.length === 0) return null;
 
   return (
@@ -46,7 +51,11 @@ export function ResyncResultList({ videos }: { videos: BunnyResyncVideo[] }) {
               {formatDate(video.createdAt)}
             </p>
           </div>
-          <DeleteVideoButton videoId={video.id} title={video.title} />
+          <DeleteVideoButton
+            videoId={video.id}
+            title={video.title}
+            onDeleted={() => onDeleted(video.id)}
+          />
         </li>
       ))}
     </ul>
