@@ -72,7 +72,7 @@ export function ResyncVideosButton({ stuckCount }: ResyncVideosButtonProps) {
   }
 
   return (
-    <div className="flex flex-col items-end gap-1 text-right">
+    <div className="flex w-full flex-col items-start gap-1 text-left sm:w-auto sm:items-end sm:text-right">
       {stuckCount > 0 && (
         <button type="button" onClick={resync} disabled={busy} className={chipButtonClass}>
           <RefreshCw size={13} className={busy ? "animate-spin" : undefined} />
