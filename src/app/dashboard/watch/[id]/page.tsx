@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { preconnect } from "react-dom";
-import { ArrowLeft, CreditCard, Eye, Lock } from "lucide-react";
+import { CreditCard, Eye, Lock } from "lucide-react";
+import { BackButton } from "@/components/videos/BackButton";
 import { requireUser } from "@/lib/auth";
 import { bunnyPreconnectOrigins, signBunnyEmbedUrl } from "@/lib/bunny";
 import { fetchCategoryAccess } from "@/lib/categories";
@@ -74,13 +75,7 @@ export default async function WatchPage({
         description={`${creatorLabel(video)} · ${formatViews(video.views)} views · ${formatDate(video.created_at)}`}
       />
 
-      <Link
-        href="/dashboard/explore"
-        className="inline-flex items-center gap-1.5 text-sm text-muted hover:text-foreground transition-colors"
-      >
-        <ArrowLeft size={14} />
-        Back to Explore
-      </Link>
+      <BackButton fallbackHref="/dashboard/explore" />
 
       {unlocked ? (
         <div className="space-y-4">
