@@ -1,12 +1,14 @@
 import type { LucideIcon } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { VideoGrid } from "./VideoGrid";
+import type { Paging } from "@/lib/paging";
 
 interface CategoryFeedProps {
   icon: LucideIcon;
   title: string;
   description: string;
   category: string;
+  paging: Paging;
 }
 
 export async function CategoryFeed({
@@ -14,6 +16,7 @@ export async function CategoryFeed({
   title,
   description,
   category,
+  paging,
 }: CategoryFeedProps) {
   return (
     <div className="space-y-8">
@@ -22,7 +25,7 @@ export async function CategoryFeed({
         title={title}
         description={description}
       />
-      <VideoGrid category={category} />
+      <VideoGrid category={category} paging={paging} />
     </div>
   );
 }

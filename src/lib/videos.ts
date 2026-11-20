@@ -105,6 +105,8 @@ interface FetchVideosOptions {
   search?: string;
   publishedOnly?: boolean;
   limit?: number;
+  /** Rows to skip, for paging through a listing. */
+  offset?: number;
   excludeCategories?: readonly string[];
 }
 
@@ -116,6 +118,7 @@ export async function fetchVideos(
     search,
     publishedOnly = true,
     limit = 60,
+    offset = 0,
     excludeCategories,
   }: FetchVideosOptions = {}
 ): Promise<VideoRow[]> {
@@ -123,7 +126,9 @@ export async function fetchVideos(
     .from("videos")
     .select("*, creator:creator_id(username, display_name)")
     .order("created_at", { ascending: false })
-    .limit(limit);
+    // id breaks ties so paging never repeats or skips a row.
+    .order("id", { ascending: false })
+    .range(offset, offset + limit - 1);
 
   if (category) query = query.eq("category", category);
   if (excludeCategories?.length) {
@@ -151,6 +156,43 @@ export async function fetchVideos(
     return [];
   }
   return (data ?? []) as VideoRow[];
+}
+
+export interface PlatformVideoTotals {
+  videos: number;
+  views: number;
+}
+
+/** Supabase returns at most this many rows per request. */
+const PAGE_SIZE = 1000;
+
+/**
+ * Counts every video on the platform and adds up their views. The views are
+ * read a page at a time, since one request is capped at PAGE_SIZE rows.
+ */
+export async function fetchPlatformVideoTotals(
+  supabase: SupabaseClient
+): Promise<PlatformVideoTotals> {
+  let views = 0;
+  let videos = 0;
+
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, count, error } = await supabase
+      .from("videos")
+      .select("views", { count: from === 0 ? "exact" : undefined })
+      .order("id")
+      .range(from, from + PAGE_SIZE - 1);
+
+    if (error) {
+      console.warn(`[videos] platform totals failed: ${error.message}`);
+      break;
+    }
+    if (from === 0) videos = count ?? 0;
+    for (const row of data ?? []) views += row.views ?? 0;
+    if (!data || data.length < PAGE_SIZE) break;
+  }
+
+  return { videos, views };
 }
 
 export interface CreatorTotals {

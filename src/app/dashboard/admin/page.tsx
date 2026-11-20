@@ -5,6 +5,8 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { StatCard } from "@/components/ui/StatCard";
 import { Card } from "@/components/ui/Card";
 import { StatusBadge } from "@/components/ui/StatusBadge";
+import { Pagination } from "@/components/ui/Pagination";
+import { parsePage, type Paging } from "@/lib/paging";
 import { UsersTable, type AdminUserRow } from "@/components/admin/UsersTable";
 import {
   PendingPayments,
@@ -15,32 +17,60 @@ import { fetchGiftTopUpPackages } from "@/lib/gift-topups";
 import { PlanLinksForm } from "@/components/admin/PlanLinksForm";
 import { headers } from "next/headers";
 import { DeleteVideoButton } from "@/components/videos/DeleteVideoButton";
+import { ResyncVideosButton } from "@/components/admin/ResyncVideosButton";
+import { countStuckBunnyVideos } from "@/lib/bunny-sync";
 import {
   creatorLabel,
   formatDate,
+  fetchPlatformVideoTotals,
   fetchSubscriptionPlans,
   formatViews,
   videoStatusLabel,
   type VideoRow,
 } from "@/lib/videos";
 
-export default async function AdminPage() {
+/** How many videos the Videos & Views table lists. */
+const VIDEO_TABLE_LIMIT = 100;
+/** Users per page in the User Management table. */
+const USERS_PAGE_SIZE = 50;
+
+export default async function AdminPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
   const admin = await requireRole("admin");
   const supabase = await createClient();
+  const usersPaging: Paging = {
+    page: parsePage((await searchParams).page),
+    basePath: "/dashboard/admin",
+    anchor: "users",
+  };
+  const usersFrom = (usersPaging.page - 1) * USERS_PAGE_SIZE;
 
-  const [profilesResult, videosResult, subsResult, giftPackages, plans] =
-    await Promise.all([
+  const [
+    profilesResult,
+    videosResult,
+    subsResult,
+    giftPackages,
+    plans,
+    videoTotals,
+    stuckVideos,
+  ] = await Promise.all([
       supabase
         .from("profiles")
         .select(
-          "id, username, display_name, role, created_at, verification_exempted"
+          "id, username, display_name, role, created_at, verification_exempted",
+          { count: "exact" }
         )
-        .order("created_at", { ascending: false }),
+        .order("created_at", { ascending: false })
+        .order("id", { ascending: false })
+        .range(usersFrom, usersFrom + USERS_PAGE_SIZE - 1),
       supabase
         .from("videos")
         .select("*, creator:creator_id(username, display_name)")
         .order("views", { ascending: false })
-        .limit(100),
+        .limit(VIDEO_TABLE_LIMIT),
       supabase
         .from("subscriptions")
         .select(
@@ -50,6 +80,8 @@ export default async function AdminPage() {
         .limit(50),
       fetchGiftTopUpPackages(supabase),
       fetchSubscriptionPlans(supabase),
+      fetchPlatformVideoTotals(supabase),
+      countStuckBunnyVideos(supabase),
     ]);
 
   const requestHeaders = await headers();
@@ -58,12 +90,12 @@ export default async function AdminPage() {
   const siteUrl = `${proto}://${host}`;
 
   const profiles = profilesResult.data ?? [];
+  const totalUsers = profilesResult.count ?? profiles.length;
   const videos = (videosResult.data ?? []) as VideoRow[];
   const subscriptions = subsResult.data ?? [];
   const pendingCount = subscriptions.filter(
     (s) => s.status === "pending" && s.method !== "marzpay"
   ).length;
-  const totalViews = videos.reduce((sum, v) => sum + (v.views ?? 0), 0);
 
   return (
     <div className="space-y-6">
@@ -76,17 +108,17 @@ export default async function AdminPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard
           label="Total Users"
-          value={profiles.length.toLocaleString()}
+          value={totalUsers.toLocaleString()}
           icon={Users}
         />
         <StatCard
           label="Videos Uploaded"
-          value={videos.length.toLocaleString()}
+          value={videoTotals.videos.toLocaleString()}
           icon={Video}
         />
         <StatCard
           label="Total Views"
-          value={formatViews(totalViews)}
+          value={formatViews(videoTotals.views)}
           icon={Eye}
         />
         <StatCard
@@ -136,7 +168,7 @@ export default async function AdminPage() {
         />
       </Card>
 
-      <Card className="overflow-hidden">
+      <Card id="users" className="overflow-hidden scroll-mt-4">
         <div className="p-4 border-b border-border">
           <h2 className="font-semibold">User Management</h2>
           <p className="text-xs text-muted mt-0.5">
@@ -144,17 +176,28 @@ export default async function AdminPage() {
           </p>
         </div>
         <UsersTable
+          // A new page must reset the table's local edits.
+          key={usersPaging.page}
           users={profiles as AdminUserRow[]}
           currentUserId={admin.id}
         />
+        <div className="pb-4">
+          <Pagination
+            paging={usersPaging}
+            hasNext={usersFrom + profiles.length < totalUsers}
+          />
+        </div>
       </Card>
 
       <Card className="overflow-hidden">
-        <div className="p-4 border-b border-border">
-          <h2 className="font-semibold">Videos &amp; Views</h2>
-          <p className="text-xs text-muted mt-0.5">
-            Every upload on the platform, ordered by views
-          </p>
+        <div className="p-4 border-b border-border flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <h2 className="font-semibold">Videos &amp; Views</h2>
+            <p className="text-xs text-muted mt-0.5">
+              The {VIDEO_TABLE_LIMIT} most-viewed uploads on the platform
+            </p>
+          </div>
+          <ResyncVideosButton stuckCount={stuckVideos} />
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[640px]">
