@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Header } from "@/components/layout/Header";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { WhatsAppButton } from "@/components/support/WhatsAppButton";
+import { NavigationTracker } from "@/components/layout/NavigationTracker";
 
 export default async function DashboardLayout({
   children,
@@ -20,6 +21,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-background">
+      <NavigationTracker />
       <Header user={user} />
       <Sidebar user={user} />
       <main className="lg:ml-60 pt-[6.75rem] lg:pt-14 min-h-screen">
