@@ -14,6 +14,7 @@ import {
 import { readVideo, uploadToBunny, type BunnyUpload } from "@/lib/video-upload";
 import { UploadDone } from "./upload/UploadDone";
 import { VideoDropzone } from "./upload/VideoDropzone";
+import { useLeaveWarning } from "./upload/useLeaveWarning";
 
 const DEFAULT_CATEGORY = "explore";
 
@@ -50,6 +51,7 @@ export function UploadWidget({
   const [done, setDone] = useState(false);
   const [pendingReview, setPendingReview] = useState(false);
   const pickedRef = useRef<File | null>(null);
+  useLeaveWarning(uploading);
 
   function pickFile(next: File | undefined) {
     if (!next) return;
@@ -232,6 +234,12 @@ export function UploadWidget({
               : "Uploading... this may take a moment"
             : "Submit video"}
         </button>
+        {uploading && (
+          <p className="text-xs text-muted text-center">
+            Keep this page open until the upload finishes. Closing it, leaving
+            the page or locking your phone stops the upload.
+          </p>
+        )}
       </div>
     </div>
   );

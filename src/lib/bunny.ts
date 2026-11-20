@@ -28,6 +28,11 @@ export const BunnyWebhookStatus = {
 
 /** Status codes on the video API. */
 export const BunnyVideoStatus = {
+  /** The video object exists but no file has arrived yet. */
+  Created: 0,
+  Uploaded: 1,
+  Processing: 2,
+  Transcoding: 3,
   Finished: 4,
   Error: 5,
   UploadFailed: 6,

@@ -4,9 +4,15 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { CategoryFeed } from "@/components/dashboard/CategoryFeed";
 import { LiveStreamCard } from "@/components/live/LiveStreamCard";
+import { parsePage } from "@/lib/paging";
 import { fetchLiveDays, fetchLiveStreams, liveDaysLabel } from "@/lib/live";
 
-export default async function LivePage() {
+export default async function LivePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const page = parsePage((await searchParams).page);
   const supabase = await createClient();
   const [streams, liveDays] = await Promise.all([
     fetchLiveStreams(supabase, { limit: 30 }),
@@ -82,6 +88,7 @@ export default async function LivePage() {
         title="Live recordings"
         description="Every finished broadcast is archived here"
         category="live"
+        paging={{ page, basePath: "/dashboard/live" }}
       />
     </div>
   );
