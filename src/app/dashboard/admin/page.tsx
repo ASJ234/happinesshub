@@ -19,6 +19,8 @@ import { headers } from "next/headers";
 import { DeleteVideoButton } from "@/components/videos/DeleteVideoButton";
 import { ResyncVideosButton } from "@/components/admin/ResyncVideosButton";
 import { countStuckBunnyVideos } from "@/lib/bunny-sync";
+import { fetchRevenueTotals } from "@/lib/revenue";
+import { RevenueStats } from "@/components/admin/RevenueStats";
 import {
   creatorLabel,
   formatDate,
@@ -56,6 +58,7 @@ export default async function AdminPage({
     plans,
     videoTotals,
     stuckVideos,
+    revenue,
   ] = await Promise.all([
       supabase
         .from("profiles")
@@ -82,6 +85,7 @@ export default async function AdminPage({
       fetchSubscriptionPlans(supabase),
       fetchPlatformVideoTotals(supabase),
       countStuckBunnyVideos(supabase),
+      fetchRevenueTotals(supabase),
     ]);
 
   const requestHeaders = await headers();
@@ -127,6 +131,8 @@ export default async function AdminPage({
           icon={CreditCard}
         />
       </div>
+
+      <RevenueStats totals={revenue} />
 
       <Card className="overflow-hidden">
         <div className="p-4 border-b border-border">
