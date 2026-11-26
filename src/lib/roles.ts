@@ -22,6 +22,7 @@ import {
   ShieldCheck,
   Contact,
   Store,
+  UserPlus,
 } from "lucide-react";
 
 export type Role = "viewer" | "creator" | "provider" | "vendor" | "admin";
@@ -92,6 +93,7 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3, roles: CREATOR_ROLES, section: "studio" },
   { label: "Comments", href: "/dashboard/comments", icon: MessageSquare, roles: CREATOR_ROLES, section: "studio" },
   { label: "Monetization", href: "/dashboard/monetization", icon: Coins, roles: CREATOR_ROLES, section: "studio" },
+  { label: "Referrals", href: "/dashboard/referrals", icon: UserPlus, roles: ["creator"], section: "studio" },
 
   { label: "Subscription", href: "/dashboard/subscription", icon: CreditCard, roles: ALL_ROLES, section: "account" },
   { label: "Settings", href: "/dashboard/settings", icon: Settings, roles: ALL_ROLES, section: "account" },

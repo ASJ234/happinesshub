@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { use, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff } from "lucide-react";
 import { Logo } from "@/components/layout/Logo";
@@ -11,9 +11,15 @@ type Mode = "signin" | "signup";
 /** submitting: waiting for the server. redirecting: signed in, dashboard loading. */
 type Phase = "idle" | "submitting" | "redirecting";
 
-export default function LoginPage() {
+export default function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ ref?: string }>;
+}) {
   const router = useRouter();
-  const [mode, setMode] = useState<Mode>("signin");
+  // A creator's invite link: /login?ref=<username>
+  const ref = (use(searchParams).ref ?? "").trim().toLowerCase().slice(0, 20);
+  const [mode, setMode] = useState<Mode>(ref ? "signup" : "signin");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [phase, setPhase] = useState<Phase>("idle");
@@ -34,7 +40,9 @@ export default function LoginPage() {
       const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify(
+          mode === "signup" && ref ? { username, password, ref } : { username, password }
+        ),
       });
 
       const text = await res.text();
@@ -122,6 +130,12 @@ export default function LoginPage() {
               ? "Sign in with your username and password."
               : "Pick a username and password to join."}
           </p>
+
+          {mode === "signup" && ref && (
+            <p className="text-sm text-primary bg-primary/10 border border-primary/20 rounded-lg px-3 py-2 -mt-3 mb-6">
+              Invited by @{ref}
+            </p>
+          )}
 
           <form onSubmit={handleSubmit}>
             <fieldset disabled={busy} className="space-y-4 disabled:opacity-90">
