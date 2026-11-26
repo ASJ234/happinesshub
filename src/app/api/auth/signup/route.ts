@@ -13,6 +13,10 @@ export async function POST(request: Request) {
   const body = await request.json();
   const username = normalizeUsername(body.username ?? "");
   const password = body.password ?? "";
+  // Only a well-formed username is passed on; the database checks that it
+  // belongs to a creator before recording the referral.
+  const ref = normalizeUsername(String(body.ref ?? ""));
+  const referredBy = isValidUsername(ref) && ref !== username ? ref : undefined;
 
   if (!isValidUsername(username)) {
     return NextResponse.json(
@@ -45,6 +49,7 @@ export async function POST(request: Request) {
       data: {
         username,
         display_name: username,
+        ...(referredBy ? { referred_by: referredBy } : {}),
       },
     },
   });
