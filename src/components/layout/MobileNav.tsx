@@ -72,7 +72,10 @@ export function MobileNav({ user, onLogout, badges = {} }: MobileNavProps) {
             <div className="p-3 border-t border-border shrink-0">
               <button
                 type="button"
-                onClick={onLogout}
+                onClick={() => {
+                  dialogRef.current?.close();
+                  onLogout();
+                }}
                 className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted hover:text-foreground hover:bg-surface-elevated transition-colors"
               >
                 <LogOut size={18} />

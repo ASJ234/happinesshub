@@ -15,6 +15,7 @@ import type { User } from "@/lib/roles";
 import { getNavForRole } from "@/lib/roles";
 import { AccountMenu } from "./AccountMenu";
 import { NotificationBell } from "./NotificationBell";
+import { SigningOut } from "@/components/auth/SigningOut";
 import type { NavBadges } from "./Sidebar";
 import type { AdminAlert } from "@/lib/admin-alerts";
 
@@ -29,9 +30,24 @@ interface HeaderProps {
 export function Header({ user, alerts = [], badges = {} }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
+  // null: not signing out. "": in progress. Otherwise the failure message.
+  const [signOut, setSignOut] = useState<string | null>(null);
 
   async function handleLogout() {
-    await fetch("/api/auth/logout", { method: "POST" });
+    if (signOut === "") return;
+    setSignOut("");
+    try {
+      const response = await fetch("/api/auth/logout", { method: "POST" });
+      if (!response.ok) throw new Error(String(response.status));
+    } catch (err) {
+      setSignOut(
+        err instanceof TypeError
+          ? "Can't reach the server. Check your connection and try again."
+          : "Something went wrong. Please try again."
+      );
+      return;
+    }
+    // The cover stays up until the login page replaces the dashboard.
     router.push("/login");
     router.refresh();
   }
@@ -117,6 +133,14 @@ export function Header({ user, alerts = [], badges = {} }: HeaderProps) {
       <div className="px-3 pb-3 lg:hidden">
         <SearchField />
       </div>
+
+      {signOut !== null && (
+        <SigningOut
+          error={signOut || null}
+          onRetry={handleLogout}
+          onCancel={() => setSignOut(null)}
+        />
+      )}
     </header>
   );
 }
