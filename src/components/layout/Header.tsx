@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   Search,
   Upload,
-  Bell,
   Settings,
   LogOut,
 } from "lucide-react";
@@ -15,15 +14,21 @@ import { MobileNav } from "./MobileNav";
 import type { User } from "@/lib/roles";
 import { getNavForRole } from "@/lib/roles";
 import { AccountMenu } from "./AccountMenu";
+import { NotificationBell } from "./NotificationBell";
+import type { NavBadges } from "./Sidebar";
+import type { AdminAlert } from "@/lib/admin-alerts";
 
 interface HeaderProps {
   user: User | null;
+  /** What is waiting for this user; drives the bell. */
+  alerts?: AdminAlert[];
+  /** Counts next to items in the mobile menu. */
+  badges?: NavBadges;
 }
 
-export function Header({ user }: HeaderProps) {
+export function Header({ user, alerts = [], badges = {} }: HeaderProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [bellOpen, setBellOpen] = useState(false);
 
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -34,7 +39,7 @@ export function Header({ user }: HeaderProps) {
   return (
     <header className="fixed top-0 left-0 right-0 bg-header border-b border-border z-40">
       <div className="flex items-center gap-2 lg:gap-3 h-14 px-3 sm:px-4">
-        <MobileNav user={user} onLogout={handleLogout} />
+        <MobileNav user={user} onLogout={handleLogout} badges={badges} />
         <Logo size="sm" />
 
         <nav className="hidden lg:flex items-center gap-1 text-sm min-w-0 overflow-x-auto no-scrollbar">
@@ -78,31 +83,7 @@ export function Header({ user }: HeaderProps) {
 
           {user ? (
             <>
-              <div className="relative">
-                <button
-                  onClick={() => setBellOpen((v) => !v)}
-                  className="p-2 text-muted hover:text-foreground hover:bg-surface-elevated rounded-lg transition-colors"
-                  title="Notifications"
-                  aria-label="Notifications"
-                >
-                  <Bell size={18} />
-                </button>
-                {bellOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setBellOpen(false)}
-                    />
-                    <div className="absolute right-0 top-full mt-2 w-72 z-50 bg-surface border border-border rounded-xl shadow-xl p-4">
-                      <p className="text-sm font-medium mb-1">Notifications</p>
-                      <p className="text-xs text-muted">
-                        You&apos;re all caught up. Notifications will appear here
-                        once activity starts.
-                      </p>
-                    </div>
-                  </>
-                )}
-              </div>
+              <NotificationBell alerts={alerts} />
 
               <Link
                 href="/dashboard/settings"

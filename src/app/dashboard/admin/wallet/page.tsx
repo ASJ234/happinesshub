@@ -8,6 +8,7 @@ import { PayoutRunner } from "@/components/admin/PayoutRunner";
 import { WithdrawalTable } from "@/components/admin/WithdrawalTable";
 import { ReferralPayoutTable } from "@/components/admin/ReferralPayoutTable";
 import { fetchReferralPayouts } from "@/lib/referrals";
+import { REFERRAL_WITHDRAWALS_ANCHOR } from "@/lib/admin-alerts";
 import { fetchWithdrawals, money } from "@/lib/wallet";
 
 export default async function AdminWalletPage() {
@@ -71,7 +72,7 @@ export default async function AdminWalletPage() {
         <WithdrawalTable withdrawals={withdrawals} />
       </Card>
 
-      <Card className="overflow-hidden">
+      <Card id={REFERRAL_WITHDRAWALS_ANCHOR} className="overflow-hidden scroll-mt-4">
         <div className="p-4 border-b border-border">
           <h2 className="font-semibold">Referral withdrawals</h2>
           <p className="text-xs text-muted mt-0.5">

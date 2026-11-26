@@ -21,6 +21,8 @@ import { ResyncVideosButton } from "@/components/admin/ResyncVideosButton";
 import { countStuckBunnyVideos } from "@/lib/bunny-sync";
 import { fetchRevenueTotals } from "@/lib/revenue";
 import { RevenueStats } from "@/components/admin/RevenueStats";
+import { AdminAlertList } from "@/components/admin/AdminAlertList";
+import { getAdminAlerts } from "@/lib/admin-alerts";
 import {
   creatorLabel,
   formatDate,
@@ -59,6 +61,7 @@ export default async function AdminPage({
     videoTotals,
     stuckVideos,
     revenue,
+    alerts,
   ] = await Promise.all([
       supabase
         .from("profiles")
@@ -86,6 +89,7 @@ export default async function AdminPage({
       fetchPlatformVideoTotals(supabase),
       countStuckBunnyVideos(supabase),
       fetchRevenueTotals(supabase),
+      getAdminAlerts(),
     ]);
 
   const requestHeaders = await headers();
@@ -108,6 +112,8 @@ export default async function AdminPage({
         title="Admin Panel"
         description="Oversee users, payments, and every video on the platform"
       />
+
+      <AdminAlertList alerts={alerts} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard

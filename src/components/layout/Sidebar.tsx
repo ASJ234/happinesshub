@@ -4,16 +4,20 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { NavItem, Role, User } from "@/lib/roles";
 import { SECTION_LABELS, SECTION_ORDER, getNavForRole } from "@/lib/roles";
+import { CountBadge } from "@/components/ui/CountBadge";
 
-export function Sidebar({ user }: { user: User | null }) {
+/** Counts shown next to nav items, keyed by href. */
+export type NavBadges = Record<string, number>;
+
+export function Sidebar({ user, badges = {} }: { user: User | null; badges?: NavBadges }) {
   return (
     <aside className="hidden lg:flex fixed left-0 top-14 bottom-0 w-60 bg-sidebar border-r border-border flex-col z-30">
-      <NavSections role={user?.role ?? "viewer"} />
+      <NavSections role={user?.role ?? "viewer"} badges={badges} />
     </aside>
   );
 }
 
-export function NavSections({ role }: { role: Role }) {
+export function NavSections({ role, badges = {} }: { role: Role; badges?: NavBadges }) {
   const pathname = usePathname();
   const items = getNavForRole(role);
 
@@ -29,7 +33,12 @@ export function NavSections({ role }: { role: Role }) {
               {SECTION_LABELS[section]}
             </p>
             {sectionItems.map((item) => (
-              <NavLink key={item.href} item={item} pathname={pathname} />
+              <NavLink
+                key={item.href}
+                item={item}
+                pathname={pathname}
+                badge={badges[item.href] ?? 0}
+              />
             ))}
           </div>
         );
@@ -38,7 +47,15 @@ export function NavSections({ role }: { role: Role }) {
   );
 }
 
-function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
+function NavLink({
+  item,
+  pathname,
+  badge,
+}: {
+  item: NavItem;
+  pathname: string;
+  badge: number;
+}) {
   const Icon = item.icon;
   const isActive = pathname === item.href;
 
@@ -52,7 +69,8 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
       }`}
     >
       <Icon size={18} />
-      {item.label}
+      <span className="flex-1">{item.label}</span>
+      <CountBadge count={badge} />
     </Link>
   );
 }

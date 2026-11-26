@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { CountBadge } from "@/components/ui/CountBadge";
 
 const TABS = [
   { href: "/dashboard/admin", label: "Overview" },
@@ -12,7 +13,8 @@ const TABS = [
   { href: "/dashboard/admin/settings", label: "Settings" },
 ];
 
-export function AdminTabs() {
+/** badges: counts next to tabs, keyed by href. */
+export function AdminTabs({ badges = {} }: { badges?: Record<string, number> }) {
   const pathname = usePathname();
 
   return (
@@ -26,13 +28,14 @@ export function AdminTabs() {
           <Link
             key={tab.href}
             href={tab.href}
-            className={`px-3.5 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
+            className={`inline-flex items-center gap-1.5 px-3.5 py-2.5 text-sm font-medium whitespace-nowrap border-b-2 transition-colors ${
               active
                 ? "border-primary text-foreground"
                 : "border-transparent text-muted hover:text-foreground"
             }`}
           >
             {tab.label}
+            <CountBadge count={badges[tab.href] ?? 0} />
           </Link>
         );
       })}
