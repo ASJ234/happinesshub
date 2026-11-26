@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { normalizeUsername, isValidUsername, usernameToEmail } from "@/lib/auth";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
+import { parseReferralCode, REFERRAL_COOKIE } from "@/lib/referral-cookie";
 
 const SIGNUP_ERRORS: Record<string, string> = {
   "User already registered": "That username is already taken",
@@ -13,10 +15,14 @@ export async function POST(request: Request) {
   const body = await request.json();
   const username = normalizeUsername(body.username ?? "");
   const password = body.password ?? "";
+  // The invite in the link, or else the one remembered from an earlier visit.
   // Only a well-formed username is passed on; the database checks that it
   // belongs to a creator before recording the referral.
-  const ref = normalizeUsername(String(body.ref ?? ""));
-  const referredBy = isValidUsername(ref) && ref !== username ? ref : undefined;
+  const cookieStore = await cookies();
+  const ref =
+    parseReferralCode(String(body.ref ?? "")) ??
+    parseReferralCode(cookieStore.get(REFERRAL_COOKIE)?.value);
+  const referredBy = ref && ref !== username ? ref : undefined;
 
   if (!isValidUsername(username)) {
     return NextResponse.json(
@@ -60,6 +66,9 @@ export async function POST(request: Request) {
       { status: 400 }
     );
   }
+
+  // The account exists, so the invite has been used.
+  cookieStore.delete(REFERRAL_COOKIE);
 
   if (!data.session) {
     return NextResponse.json({
