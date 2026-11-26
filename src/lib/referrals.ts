@@ -178,3 +178,16 @@ export async function fetchReferralPayouts(
     };
   });
 }
+
+/** Referral withdrawals waiting for an admin. */
+export async function countPendingReferralPayouts(supabase: SupabaseClient): Promise<number> {
+  const { count, error } = await supabase
+    .from("referral_payouts")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
+  if (error) {
+    console.warn(`[referrals] pending count failed: ${error.message}`);
+    return 0;
+  }
+  return count ?? 0;
+}

@@ -3,15 +3,16 @@
 import { useEffect, useRef, type MouseEvent } from "react";
 import { LogOut, Menu, X } from "lucide-react";
 import { Logo } from "./Logo";
-import { NavSections } from "./Sidebar";
+import { NavSections, type NavBadges } from "./Sidebar";
 import type { User } from "@/lib/roles";
 
 interface MobileNavProps {
   user: User | null;
   onLogout: () => void;
+  badges?: NavBadges;
 }
 
-export function MobileNav({ user, onLogout }: MobileNavProps) {
+export function MobileNav({ user, onLogout, badges = {} }: MobileNavProps) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
   // The trigger disappears at the lg breakpoint, so a drawer left open by a
@@ -65,7 +66,7 @@ export function MobileNav({ user, onLogout }: MobileNavProps) {
             </button>
           </div>
 
-          <NavSections role={user?.role ?? "viewer"} />
+          <NavSections role={user?.role ?? "viewer"} badges={badges} />
 
           {user && (
             <div className="p-3 border-t border-border shrink-0">
