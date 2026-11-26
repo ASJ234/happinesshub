@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 import { getSupabaseEnv } from "@/lib/supabase/env";
+import {
+  parseReferralCode,
+  REFERRAL_COOKIE,
+  referralCookieOptions,
+} from "@/lib/referral-cookie";
 
 // Auth API routes never need a session check of their own.
 const PUBLIC_API_PATHS = [
@@ -74,6 +79,12 @@ export async function proxy(request: NextRequest) {
   };
 
   if (!isSignedIn) {
+    // Any page opened from an invite link (?ref=<creator>) remembers the
+    // invite, so a signup days later still credits the creator. The newest
+    // invite wins. Set before any redirect so redirectTo carries it.
+    const ref = parseReferralCode(request.nextUrl.searchParams.get("ref"));
+    if (ref) response.cookies.set(REFERRAL_COOKIE, ref, referralCookieOptions);
+
     if (isLandingPath(pathname)) {
       return response;
     }
